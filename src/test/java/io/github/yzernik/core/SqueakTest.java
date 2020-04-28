@@ -2,47 +2,43 @@ package io.github.yzernik.core;
 
         import com.google.common.io.ByteStreams;
 
-        import org.bitcoinj.core.AbstractBlockChain.NewBlockType;
+        import org.bitcoinj.core.Context;
         import org.bitcoinj.core.NetworkParameters;
         import org.bitcoinj.params.MainNetParams;
         import org.bitcoinj.params.TestNet3Params;
         import org.bitcoinj.params.UnitTestParams;
-        import org.bitcoinj.script.Script;
-        import org.bitcoinj.script.ScriptOpCodes;
-        import org.bitcoinj.wallet.Wallet;
-        import org.bitcoinj.wallet.Wallet.BalanceType;
         import org.junit.Before;
         import org.junit.Test;
 
-        import java.io.ByteArrayOutputStream;
-        import java.io.IOException;
-        import java.io.OutputStream;
-        import java.math.BigInteger;
-        import java.util.ArrayList;
-        import java.util.Arrays;
-        import java.util.EnumSet;
-        import java.util.List;
-
         import static org.junit.Assert.*;
-        import static org.bitcoinj.core.Utils.HEX;
 
 public class SqueakTest {
     private static final NetworkParameters TESTNET = TestNet3Params.get();
     private static final NetworkParameters UNITTEST = UnitTestParams.get();
     private static final NetworkParameters MAINNET = MainNetParams.get();
 
-    private byte[] block700000Bytes;
-    private Block block700000;
+    private byte[] exampleSqueakBytes;
+    private Squeak exampleSqueak;
 
     @Before
     public void setUp() throws Exception {
         new Context(TESTNET);
         // One with some of transactions in, so a good test of the merkle tree hashing.
-        block700000Bytes = ByteStreams.toByteArray(SqueakTest.class.getResourceAsStream("block_testnet700000.dat"));
-        block700000 = TESTNET.getDefaultSerializer().makeBlock(block700000Bytes);
-        assertEquals("000000000000406178b12a4dea3b27e13b3c4fe4510994fd667d7c1e6a3f4dc1", block700000.getHashAsString());
+        System.err.println("Resource: " + SqueakTest.class.getResource("squeak_example.dat"));
+        exampleSqueakBytes = ByteStreams.toByteArray(SqueakTest.class.getResourceAsStream("squeak_example.dat"));
+        NetworkParameters networkParameters = TESTNET;
+        SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, false);
+        exampleSqueak = squeakSerializer.makeSqueak(exampleSqueakBytes);
+        assertEquals("000000000000406178b12a4dea3b27e13b3c4fe4510994fd667d7c1e6a3f4dc1", exampleSqueak.getHashAsString());
     }
 
+    @Test
+    public void testGetVersion() throws Exception {
+        exampleSqueak.getVersion();
+        assertEquals(exampleSqueak.getVersion(), 1);
+    }
+
+/*
     @Test
     public void testWork() throws Exception {
         BigInteger work = TESTNET.getGenesisBlock().getWork();
@@ -338,5 +334,6 @@ public class SqueakTest {
         } catch (ProtocolException e) {
             //Expected, do nothing
         }
-    }
+    }*/
+
 }

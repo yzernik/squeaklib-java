@@ -96,6 +96,21 @@ public class Squeak extends Message {
     // of the size of the ideal encoding in addition to the actual message size (which Message needs)
     protected int optimalEncodingMessageSize;
 
+    /**
+     * Construct a block object from the Bitcoin wire format.
+     * @param params NetworkParameters object.
+     * @param payloadBytes the payload to extract the block from.
+     * @param offset The location of the first payload byte within the array.
+     * @param serializer the serializer to use for this message.
+     * @param length The length of message if known.  Usually this is provided when deserializing of the wire
+     * as the length will be provided as part of the header.  If unknown then set to Message.UNKNOWN_LENGTH
+     * @throws ProtocolException
+     */
+    public Squeak(NetworkParameters params, byte[] payloadBytes, int offset, MessageSerializer serializer, int length)
+            throws ProtocolException {
+        super(params, payloadBytes, offset, serializer, length);
+    }
+
 
     @Override
     protected void parse() throws ProtocolException {
@@ -157,6 +172,18 @@ public class Squeak extends Message {
         contentBytesValid = serializer.isParseRetainMode();
     }
 
+    /**
+     * Returns the hash of the block (which for a valid, solved block should be below the target) in the form seen on
+     * the block explorer. If you call this on block 1 in the mainnet chain
+     * you will get "00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048".
+     */
+    public String getHashAsString() {
+        return getHash().toString();
+    }
+
+    public long getVersion() {
+        return version;
+    }
 
     public static class EncContent extends ChildMessage {
         private static int ENC_CONTENT_LENGTH = 1136;
