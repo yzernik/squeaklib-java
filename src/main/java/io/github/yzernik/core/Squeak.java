@@ -70,7 +70,7 @@ public class Squeak extends Message {
     private Sha256Hash hashDataKey;
     private VCH_IV vchIv;
 
-    private long ntime;
+    private long nTime;
     private long nNonce;
     // END OF HEADER
 
@@ -130,8 +130,12 @@ public class Squeak extends Message {
         scriptBytes = readBytes(scriptLen);
 
         hashDataKey = readHash();
-        vchIv = null;
-        ntime = readUint32();
+
+        // Get the vch_iv
+        vchIv = new VCH_IV(params, payload, cursor, this, serializer, UNKNOWN_LENGTH, null);
+        cursor += vchIv.getMessageSize();
+
+        nTime = readUint32();
         nNonce = readUint32();
         // Get the hash
         hash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(payload, offset, cursor - offset));
@@ -218,20 +222,56 @@ public class Squeak extends Message {
         // fall back to manual write
         Utils.uint32ToByteStreamLE(version, stream);
         stream.write(hashEncContent.getReversedBytes());
-        stream.write(hashReplySqk.getReversedBytes());
-        stream.write(hashBlock.getReversedBytes());
-        Utils.uint32ToByteStreamLE(nBlockHeight, stream);
-        stream.write(scriptBytes);
-        stream.write(hashDataKey.getReversedBytes());
-        vchIv.bitcoinSerializeToStream(stream);
-        Utils.uint32ToByteStreamLE(ntime, stream);
-        Utils.uint32ToByteStreamLE(nNonce, stream);
-        Utils.uint32ToByteStreamLE(nBlockHeight, stream);
+        //stream.write(hashReplySqk.getReversedBytes());
+        //stream.write(hashBlock.getReversedBytes());
+        //Utils.uint32ToByteStreamLE(nBlockHeight, stream);
+        //stream.write(scriptBytes);
+        //stream.write(hashDataKey.getReversedBytes());
+        //vchIv.bitcoinSerializeToStream(stream);
+        //Utils.uint32ToByteStreamLE(ntime, stream);
+        //Utils.uint32ToByteStreamLE(nNonce, stream);
+        //Utils.uint32ToByteStreamLE(nBlockHeight, stream);
     }
 
     public long getVersion() {
         return version;
     }
+
+    public Sha256Hash getHashEncContent() {
+        return hashEncContent;
+    }
+
+    public Sha256Hash getHashReplySqk() {
+        return hashReplySqk;
+    }
+
+    public Sha256Hash getHashBlock() {
+        return hashBlock;
+    }
+
+    /**
+     * Returns a multi-line string containing a description of the contents of
+     * the block. Use for debugging purposes only.
+     */
+    @Override
+    public String toString() {
+        StringBuilder s = new StringBuilder();
+        s.append(" squeak: \n");
+        s.append("   hash: ").append(getHashAsString()).append('\n');
+        s.append("   version: ").append(version);
+        s.append('\n');
+        s.append("   hash enc content: ").append(getHashEncContent()).append("\n");
+        s.append("   hash reply sqk: ").append(getHashReplySqk()).append("\n");
+        s.append("   hash block: ").append(getHashBlock()).append("\n");
+        s.append("   block height: ").append(nBlockHeight).append(")\n");
+        s.append("   script pub key: ").append(scriptPubKey).append(")\n");
+        s.append("   hash data key: ").append(hashDataKey).append(")\n");
+        s.append("   vchIv: ").append(vchIv).append("\n");
+        s.append("   time: ").append(nTime).append("\n");
+        s.append("   nonce: ").append(nNonce).append("\n");
+        return s.toString();
+    }
+
 
     public static class EncContent extends ChildMessage {
         private static int ENC_CONTENT_LENGTH = 1136;
@@ -279,9 +319,15 @@ public class Squeak extends Message {
         private static int CIPHER_BLOCK_LENGTH = 16;
         private byte[] bytes;
 
+        public VCH_IV(NetworkParameters params, byte[] payload, int offset, @Nullable Message parent,
+                            MessageSerializer setSerializer, int length, @Nullable byte[] hashFromHeader) throws ProtocolException {
+            super(params, payload, offset, parent, setSerializer, length);
+        }
+
         @Override
         protected void parse() throws ProtocolException {
             bytes = readBytes(CIPHER_BLOCK_LENGTH);
+            length = CIPHER_BLOCK_LENGTH;
         }
 
         protected void bitcoinSerializeToStream(OutputStream stream) throws IOException {

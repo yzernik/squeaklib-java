@@ -10,6 +10,8 @@ package io.github.yzernik.core;
         import org.junit.Before;
         import org.junit.Test;
 
+        import java.io.ByteArrayOutputStream;
+
         import static org.junit.Assert.*;
 
 public class SqueakTest {
@@ -24,11 +26,23 @@ public class SqueakTest {
     public void setUp() throws Exception {
         new Context(TESTNET);
         // One with some of transactions in, so a good test of the merkle tree hashing.
-        System.err.println("Resource: " + SqueakTest.class.getResource("squeak_example.dat"));
         exampleSqueakBytes = ByteStreams.toByteArray(SqueakTest.class.getResourceAsStream("squeak_example.dat"));
         NetworkParameters networkParameters = TESTNET;
         SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, false);
         exampleSqueak = squeakSerializer.makeSqueak(exampleSqueakBytes);
+        System.out.println(exampleSqueak);
+
+        String HEADER_BYTES = "01000000d24539cde12999622b9d970c95b440062d8e82d87be8da21158ce6ec2b08a70700000000000000000000000000000000000000000000000000000000000000003ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a000000001976a9149cf30fd736284615e3c40a818eab9cb6c740a0ea88ace93216de0c8a01aaea125412035174f231c19fbbc4649932e443f245b49e3cd8cf0435fe005cbc4d2398aaf6b61a6e15bbc9a75e50dd5b47";
+
+        System.out.println("Header bytes from parsed data:");
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        exampleSqueak.writeHeader(baos);
+        String hex = convertBytesToHex(baos.toByteArray());
+        System.out.println(hex);
+
+        System.out.println("Header bytes from String:");
+        System.out.println(HEADER_BYTES);
+
         assertEquals("82fafbc68e1f1b6d989f37ec819ac03aadec20ab24443905bd1ef8676d0658c4", exampleSqueak.getHashAsString());
     }
 
@@ -36,6 +50,16 @@ public class SqueakTest {
     public void testGetVersion() throws Exception {
         exampleSqueak.getVersion();
         assertEquals(exampleSqueak.getVersion(), 1);
+    }
+
+    public static String convertBytesToHex(byte[] bytes) {
+        StringBuilder result = new StringBuilder();
+        for (byte temp : bytes) {
+            int decimal = (int) temp & 0xff;  // bytes widen to int, need mask, prevent sign extension
+            String hex = Integer.toHexString(decimal);
+            result.append(hex);
+        }
+        return result.toString();
     }
 
 /*
