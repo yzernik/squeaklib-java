@@ -29,7 +29,7 @@ public class SqueakTest {
         NetworkParameters networkParameters = TESTNET;
         SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, false);
         exampleSqueak = squeakSerializer.makeSqueak(exampleSqueakBytes);
-        assertEquals("000000000000406178b12a4dea3b27e13b3c4fe4510994fd667d7c1e6a3f4dc1", exampleSqueak.getHashAsString());
+        assertEquals("82fafbc68e1f1b6d989f37ec819ac03aadec20ab24443905bd1ef8676d0658c4", exampleSqueak.getHashAsString());
     }
 
     @Test

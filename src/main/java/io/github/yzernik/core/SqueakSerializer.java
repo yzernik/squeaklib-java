@@ -40,6 +40,7 @@ public class SqueakSerializer extends BitcoinSerializer {
      * length as block length.
      */
     public final Squeak makeSqueak(byte[] payloadBytes) throws ProtocolException {
+        System.err.println("payload length: " + payloadBytes.length);
         return makeSqueak(payloadBytes, 0, payloadBytes.length);
     }
 

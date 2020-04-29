@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -122,6 +123,7 @@ public class Squeak extends Message {
         hashBlock = readHash();
         nBlockHeight = readUint32();
 
+
         // parse the script pubkey
         scriptLen = (int) readVarInt();
         length = cursor - offset + scriptLen;
@@ -181,6 +183,52 @@ public class Squeak extends Message {
         return getHash().toString();
     }
 
+    /**
+     * Returns the hash of the block (which for a valid, solved block should be
+     * below the target). Big endian.
+     */
+    @Override
+    public Sha256Hash getHash() {
+        if (hash == null)
+            hash = calculateHash();
+        return hash;
+    }
+
+    /**
+     * Calculates the block hash by serializing the block and hashing the
+     * resulting bytes.
+     */
+    private Sha256Hash calculateHash() {
+        try {
+            ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream(HEADER_SIZE);
+            writeHeader(bos);
+            return Sha256Hash.wrapReversed(Sha256Hash.hashTwice(bos.toByteArray()));
+        } catch (IOException e) {
+            throw new RuntimeException(e); // Cannot happen.
+        }
+    }
+
+    // default for testing
+    void writeHeader(OutputStream stream) throws IOException {
+        // try for cached write first
+        if (headerBytesValid && payload != null && payload.length >= offset + HEADER_SIZE) {
+            stream.write(payload, offset, HEADER_SIZE);
+            return;
+        }
+        // fall back to manual write
+        Utils.uint32ToByteStreamLE(version, stream);
+        stream.write(hashEncContent.getReversedBytes());
+        stream.write(hashReplySqk.getReversedBytes());
+        stream.write(hashBlock.getReversedBytes());
+        Utils.uint32ToByteStreamLE(nBlockHeight, stream);
+        stream.write(scriptBytes);
+        stream.write(hashDataKey.getReversedBytes());
+        vchIv.bitcoinSerializeToStream(stream);
+        Utils.uint32ToByteStreamLE(ntime, stream);
+        Utils.uint32ToByteStreamLE(nNonce, stream);
+        Utils.uint32ToByteStreamLE(nBlockHeight, stream);
+    }
+
     public long getVersion() {
         return version;
     }
@@ -218,6 +266,7 @@ public class Squeak extends Message {
         @Override
         protected void parse() throws ProtocolException {
             bytes = readBytes(ENC_CONTENT_LENGTH);
+            length = ENC_CONTENT_LENGTH;
         }
 
         protected void bitcoinSerializeToStream(OutputStream stream) throws IOException {
@@ -275,6 +324,7 @@ public class Squeak extends Message {
         @Override
         protected void parse() throws ProtocolException {
             bytes = readBytes(DATA_KEY_LENGTH);
+            length = DATA_KEY_LENGTH;
         }
 
         protected void bitcoinSerializeToStream(OutputStream stream) throws IOException {
