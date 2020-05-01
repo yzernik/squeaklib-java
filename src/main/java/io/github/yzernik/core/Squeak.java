@@ -9,6 +9,9 @@ import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
+
+import org.apache.commons.codec.binary.Hex;
 
 
 public class Squeak extends Message {
@@ -120,9 +123,10 @@ public class Squeak extends Message {
         version = readUint32();
         hashEncContent = readHash();
         hashReplySqk = readHash();
+        System.out.println(hashReplySqk);
         hashBlock = readHash();
+        System.out.println(hashBlock);
         nBlockHeight = readUint32();
-
 
         // parse the script pubkey
         scriptLen = (int) readVarInt();
