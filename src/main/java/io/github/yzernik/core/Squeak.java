@@ -9,9 +9,6 @@ import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Arrays;
-
-import org.apache.commons.codec.binary.Hex;
 
 
 public class Squeak extends Message {
@@ -19,25 +16,7 @@ public class Squeak extends Message {
     private static final Logger log = LoggerFactory.getLogger(Squeak.class);
 
     /** How many bytes are required to represent a block header WITHOUT the trailing 00 length byte. */
-    public static final int HEADER_SIZE = 80;
-
-    static final long ALLOWED_TIME_DRIFT = 2 * 60 * 60; // Same value as Bitcoin Core.
-
-    /**
-     * A constant shared by the entire network: how large in bytes a block is allowed to be. One day we may have to
-     * upgrade everyone to change this, so Bitcoin can continue to grow. For now it exists as an anti-DoS measure to
-     * avoid somebody creating a titanically huge but valid block and forcing everyone to download/store it forever.
-     */
-    public static final int MAX_BLOCK_SIZE = 1 * 1000 * 1000;
-    /**
-     * A "sigop" is a signature verification operation. Because they're expensive we also impose a separate limit on
-     * the number in a block to prevent somebody mining a huge block that has way more sigops than normal, so is very
-     * expensive/slow to verify.
-     */
-    public static final int MAX_BLOCK_SIGOPS = MAX_BLOCK_SIZE / 50;
-
-    /** A value for difficultyTarget (nBits) that allows half of all possible hash solutions. Used in unit testing. */
-    public static final long EASIEST_DIFFICULTY_TARGET = 0x207fFFFFL;
+    public static final int HEADER_SIZE = 186;
 
     /** Value to use if the block height is unknown */
     public static final int BLOCK_HEIGHT_UNKNOWN = -1;
@@ -84,7 +63,7 @@ public class Squeak extends Message {
     EncContent encContent;
 
     @Nullable
-    Script scriptSig;
+    private byte[] scriptSigBytes;
 
     @Nullable
     VCH_DATA_KEY vchDataKey;
@@ -123,9 +102,7 @@ public class Squeak extends Message {
         version = readUint32();
         hashEncContent = readHash();
         hashReplySqk = readHash();
-        System.out.println(hashReplySqk);
         hashBlock = readHash();
-        System.out.println(hashBlock);
         nBlockHeight = readUint32();
 
         // parse the script pubkey
@@ -142,10 +119,11 @@ public class Squeak extends Message {
         nTime = readUint32();
         nNonce = readUint32();
         // Get the hash
-        hash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(payload, offset, cursor - offset));
+        // TODO: uncomment.
+        // hash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(payload, offset, cursor - offset));
         headerBytesValid = serializer.isParseRetainMode();
 
-        // transactions
+        // content
         parseContent(offset + HEADER_SIZE);
         length = cursor - offset;
     }
@@ -172,8 +150,8 @@ public class Squeak extends Message {
         // Get the script sig.
         int scriptLen = (int) readVarInt();
         length = cursor - offset + scriptLen + 4;
-        scriptBytes = readBytes(scriptLen);
-        scriptSig = new Script(scriptBytes);
+        scriptSigBytes = readBytes(scriptLen);
+        // scriptSig = new Script(scriptSigBytes);
 
         // Get the data key.
         vchDataKey = new VCH_DATA_KEY(params, payload, cursor, this, serializer, UNKNOWN_LENGTH, null);
@@ -226,15 +204,31 @@ public class Squeak extends Message {
         // fall back to manual write
         Utils.uint32ToByteStreamLE(version, stream);
         stream.write(hashEncContent.getReversedBytes());
-        //stream.write(hashReplySqk.getReversedBytes());
-        //stream.write(hashBlock.getReversedBytes());
-        //Utils.uint32ToByteStreamLE(nBlockHeight, stream);
-        //stream.write(scriptBytes);
-        //stream.write(hashDataKey.getReversedBytes());
-        //vchIv.bitcoinSerializeToStream(stream);
-        //Utils.uint32ToByteStreamLE(ntime, stream);
-        //Utils.uint32ToByteStreamLE(nNonce, stream);
-        //Utils.uint32ToByteStreamLE(nBlockHeight, stream);
+        stream.write(hashReplySqk.getReversedBytes());
+        stream.write(hashBlock.getReversedBytes());
+        Utils.uint32ToByteStreamLE(nBlockHeight, stream);
+        stream.write(new VarInt(scriptLen).encode());
+        stream.write(scriptBytes);
+        stream.write(hashDataKey.getReversedBytes());
+        vchIv.bitcoinSerializeToStream(stream);
+        Utils.uint32ToByteStreamLE(nTime, stream);
+        Utils.uint32ToByteStreamLE(nNonce, stream);
+    }
+
+    // default for testing
+    void writeHeaderManual(OutputStream stream) throws IOException {
+        // fall back to manual write
+        Utils.uint32ToByteStreamLE(version, stream);
+        stream.write(hashEncContent.getReversedBytes());
+        stream.write(hashReplySqk.getReversedBytes());
+        stream.write(hashBlock.getReversedBytes());
+        Utils.uint32ToByteStreamLE(nBlockHeight, stream);
+        stream.write(new VarInt(scriptLen).encode());
+        stream.write(scriptBytes);
+        stream.write(hashDataKey.getReversedBytes());
+        vchIv.bitcoinSerializeToStream(stream);
+        Utils.uint32ToByteStreamLE(nTime, stream);
+        Utils.uint32ToByteStreamLE(nNonce, stream);
     }
 
     public long getVersion() {
