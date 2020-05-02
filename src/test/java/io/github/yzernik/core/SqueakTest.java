@@ -26,7 +26,7 @@ public class SqueakTest {
         // One with some of transactions in, so a good test of the merkle tree hashing.
         exampleSqueakBytes = ByteStreams.toByteArray(SqueakTest.class.getResourceAsStream("squeak_example.dat"));
         NetworkParameters networkParameters = TESTNET;
-        SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, false);
+        SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, true);
         exampleSqueak = squeakSerializer.makeSqueak(exampleSqueakBytes);
         System.out.println(exampleSqueak);
     }
