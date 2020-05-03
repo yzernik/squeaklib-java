@@ -11,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
+import java.util.EnumSet;
 
 
 public class Squeak extends Message {
@@ -260,6 +261,16 @@ public class Squeak extends Message {
         return scriptPubKey;
     }
 
+    /**
+     * Get the address for the author of this squeak.
+     * @return
+     * @throws ScriptException
+     */
+    public Address getAddress() throws ScriptException {
+        Script pubkey = getScriptPubKey();
+        return pubkey.getToAddress(params);
+    }
+
     public Sha256Hash getHashDataKey() throws ScriptException {
         return hashDataKey;
     }
@@ -291,6 +302,59 @@ public class Squeak extends Message {
         }
         return script;
     }
+
+    /**
+     * Verifies both the header and that the transactions hash to the merkle root.
+     *
+     * @param height block height, if known, or -1 otherwise.
+     * @param flags flags to indicate which tests should be applied (i.e.
+     * whether to test for height in the coinbase transaction).
+     * @throws VerificationException if there was an error verifying the block.
+     */
+    public void verify() throws VerificationException {
+        verifyHeader();
+        verifyContent();
+    }
+
+    /**
+     * Checks the squeak data to ensure it follows the rules laid out in the network parameters.
+     *
+     * @throws VerificationException
+     */
+    public void verifyHeader() throws VerificationException {
+        // Prove that this squeak is OK.
+        checkPubKey();
+    }
+
+    private void checkPubKey() {
+        try {
+            getAddress();
+        } catch (ScriptException e) {
+            throw new VerificationException("Unable to generate address for squeak: " + e);
+        }
+    }
+
+    /**
+     * Checks the block contents
+     *
+     * @throws VerificationException if there was an error verifying the block.
+     */
+    public void verifyContent() throws VerificationException {
+/*        // Now we need to check that the body of the block actually matches the headers. The network won't generate
+        // an invalid block, but if we didn't validate this then an untrusted man-in-the-middle could obtain the next
+        // valid block from the network and simply replace the transactions in it with their own fictional
+        // transactions that reference spent or non-existent inputs.
+        if (transactions.isEmpty())
+            throw new VerificationException("Block had no transactions");
+        if (this.getOptimalEncodingMessageSize() > MAX_BLOCK_SIZE)
+            throw new VerificationException("Block larger than MAX_BLOCK_SIZE");
+        checkTransactions(height, flags);
+        checkMerkleRoot();
+        checkSigOps();
+        for (Transaction transaction : transactions)
+            transaction.verify();*/
+    }
+
 
     /**
      * Returns a multi-line string containing a description of the contents of

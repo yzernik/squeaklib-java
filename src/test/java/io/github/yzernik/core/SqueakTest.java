@@ -44,7 +44,6 @@ public class SqueakTest {
 
     @Test
     public void testGetPubKey() throws Exception {
-        System.out.println(exampleSqueak.getScriptPubKey());
         assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(0).opcode, ScriptOpCodes.OP_DUP);
         assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(1).opcode, ScriptOpCodes.OP_HASH160);
         assert(exampleSqueak.getScriptPubKey().getChunks().get(2).isPushData());
@@ -67,10 +66,14 @@ public class SqueakTest {
         assertEquals(1588050767, exampleSqueak.getTime());
     }
 
-
     @Test
     public void testNonce() throws Exception {
         assertEquals(0x2885819d, exampleSqueak.getNonce());
+    }
+
+    @Test
+    public void testVerify() throws Exception {
+        exampleSqueak.verify();
     }
 
 /*
@@ -110,38 +113,6 @@ public class SqueakTest {
         //
         // NB: This tests the bitcoin serialization protocol.
         assertArrayEquals(block700000Bytes, block700000.bitcoinSerialize());
-    }
-
-    @Test
-    public void testUpdateLength() {
-        Block block = UNITTEST.getGenesisBlock().createNextBlockWithCoinbase(Block.BLOCK_VERSION_GENESIS, new ECKey().getPubKey(), Block.BLOCK_HEIGHT_GENESIS);
-        assertEquals(block.bitcoinSerialize().length, block.length);
-        final int origBlockLen = block.length;
-        Transaction tx = new Transaction(UNITTEST);
-        // this is broken until the transaction has > 1 input + output (which is required anyway...)
-        //assertTrue(tx.length == tx.bitcoinSerialize().length && tx.length == 8);
-        byte[] outputScript = new byte[10];
-        Arrays.fill(outputScript, (byte) ScriptOpCodes.OP_FALSE);
-        tx.addOutput(new TransactionOutput(UNITTEST, null, Coin.SATOSHI, outputScript));
-        tx.addInput(new TransactionInput(UNITTEST, null, new byte[] {(byte) ScriptOpCodes.OP_FALSE},
-                new TransactionOutPoint(UNITTEST, 0, Sha256Hash.of(new byte[] { 1 }))));
-        int origTxLength = 8 + 2 + 8 + 1 + 10 + 40 + 1 + 1;
-        assertEquals(tx.unsafeBitcoinSerialize().length, tx.length);
-        assertEquals(origTxLength, tx.length);
-        block.addTransaction(tx);
-        assertEquals(block.unsafeBitcoinSerialize().length, block.length);
-        assertEquals(origBlockLen + tx.length, block.length);
-        block.getTransactions().get(1).getInputs().get(0).setScriptBytes(new byte[] {(byte) ScriptOpCodes.OP_FALSE, (byte) ScriptOpCodes.OP_FALSE});
-        assertEquals(block.length, origBlockLen + tx.length);
-        assertEquals(tx.length, origTxLength + 1);
-        block.getTransactions().get(1).getInputs().get(0).clearScriptBytes();
-        assertEquals(block.length, block.unsafeBitcoinSerialize().length);
-        assertEquals(block.length, origBlockLen + tx.length);
-        assertEquals(tx.length, origTxLength - 1);
-        block.getTransactions().get(1).addInput(new TransactionInput(UNITTEST, null, new byte[] {(byte) ScriptOpCodes.OP_FALSE},
-                new TransactionOutPoint(UNITTEST, 0, Sha256Hash.of(new byte[] { 1 }))));
-        assertEquals(block.length, origBlockLen + tx.length);
-        assertEquals(tx.length, origTxLength + 41); // - 1 + 40 + 1 + 1
     }
 
     @Test
