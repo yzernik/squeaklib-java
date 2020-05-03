@@ -7,6 +7,7 @@ package io.github.yzernik.core;
         import org.bitcoinj.params.MainNetParams;
         import org.bitcoinj.params.TestNet3Params;
         import org.bitcoinj.params.UnitTestParams;
+        import org.bitcoinj.script.ScriptOpCodes;
         import org.junit.Before;
         import org.junit.Test;
 
@@ -41,65 +42,44 @@ public class SqueakTest {
         assertEquals(exampleSqueak.getVersion(), 1);
     }
 
-    public static String convertBytesToHex(byte[] bytes) {
-        StringBuilder result = new StringBuilder();
-        for (byte temp : bytes) {
-            int decimal = (int) temp & 0xff;  // bytes widen to int, need mask, prevent sign extension
-            String hex = Integer.toHexString(decimal);
-            result.append(hex);
-        }
-        return result.toString();
+    @Test
+    public void testGetPubKey() throws Exception {
+        System.out.println(exampleSqueak.getScriptPubKey());
+        assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(0).opcode, ScriptOpCodes.OP_DUP);
+        assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(1).opcode, ScriptOpCodes.OP_HASH160);
+        assert(exampleSqueak.getScriptPubKey().getChunks().get(2).isPushData());
+        assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(3).opcode, ScriptOpCodes.OP_EQUALVERIFY);
+        assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(4).opcode, ScriptOpCodes.OP_CHECKSIG);
+    }
+
+    @Test
+    public void testHashDataKey() throws Exception {
+        assertEquals("a892b040034ca5e70da84d7e5997653004df21de39e9db946692ebe7819a8f60", exampleSqueak.getHashDataKey().toString());
+    }
+
+    @Test
+    public void testIV() throws Exception {
+        assertEquals("036516e4f1c0c55e1201e0a28f016ff3", exampleSqueak.getVchIv().toString());
+    }
+
+    @Test
+    public void testTime() throws Exception {
+        assertEquals(1588050767, exampleSqueak.getTime());
+    }
+
+
+    @Test
+    public void testNonce() throws Exception {
+        assertEquals(0x2885819d, exampleSqueak.getNonce());
     }
 
 /*
-    @Test
-    public void testWork() throws Exception {
-        BigInteger work = TESTNET.getGenesisBlock().getWork();
-        double log2Work = Math.log(work.longValue()) / Math.log(2);
-        // This number is printed by Bitcoin Core at startup as the calculated value of chainWork on testnet:
-        // UpdateTip: new best=000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943 height=0 version=0x00000001 log2_work=32.000022 tx=1 date='2011-02-02 23:16:42' ...
-        assertEquals(32.000022, log2Work, 0.0000001);
-    }
 
     @Test
     public void testBlockVerification() throws Exception {
         block700000.verify(Block.BLOCK_HEIGHT_GENESIS, EnumSet.noneOf(Block.VerifyFlag.class));
     }
 
-    @SuppressWarnings("deprecation")
-    @Test
-    public void testDate() throws Exception {
-        assertEquals("2016-02-13T22:59:39Z", Utils.dateTimeFormat(block700000.getTime()));
-    }
-
-    @Test
-    public void testProofOfWork() throws Exception {
-        // This params accepts any difficulty target.
-        Block block = UNITTEST.getDefaultSerializer().makeBlock(block700000Bytes);
-        block.setNonce(12346);
-        try {
-            block.verify(Block.BLOCK_HEIGHT_GENESIS, EnumSet.noneOf(Block.VerifyFlag.class));
-            fail();
-        } catch (VerificationException e) {
-            // Expected.
-        }
-        // Blocks contain their own difficulty target. The BlockChain verification mechanism is what stops real blocks
-        // from containing artificially weak difficulties.
-        block.setDifficultyTarget(Block.EASIEST_DIFFICULTY_TARGET);
-        // Now it should pass.
-        block.verify(Block.BLOCK_HEIGHT_GENESIS, EnumSet.noneOf(Block.VerifyFlag.class));
-        // Break the nonce again at the lower difficulty level so we can try solving for it.
-        block.setNonce(1);
-        try {
-            block.verify(Block.BLOCK_HEIGHT_GENESIS, EnumSet.noneOf(Block.VerifyFlag.class));
-            fail();
-        } catch (VerificationException e) {
-            // Expected to fail as the nonce is no longer correct.
-        }
-        // Should find an acceptable nonce.
-        block.solve();
-        block.verify(Block.BLOCK_HEIGHT_GENESIS, EnumSet.noneOf(Block.VerifyFlag.class));
-    }
 
     @Test
     public void testBadTransactions() throws Exception {
