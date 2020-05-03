@@ -2,6 +2,7 @@ package io.github.yzernik.core;
 
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
+import org.bitcoinj.script.ScriptException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,6 +10,7 @@ import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.ref.WeakReference;
 
 
 public class Squeak extends Message {
@@ -40,7 +42,7 @@ public class Squeak extends Message {
 
     // A transaction output has a script used for authenticating that the redeemer is allowed to spend
     // this output.
-    private byte[] scriptBytes;
+    private byte[] scriptPubKeyBytes;
     // The script bytes are parsed and turned into a Script on demand.
     private Script scriptPubKey;
     // These fields are not Bitcoin serialized. They are used for tracking purposes in our wallet
@@ -64,6 +66,10 @@ public class Squeak extends Message {
 
     @Nullable
     private byte[] scriptSigBytes;
+
+    // The script bytes are parsed and turned into a Script on demand.
+    @Nullable
+    private WeakReference<Script> scriptSig;
 
     @Nullable
     VCH_DATA_KEY vchDataKey;
@@ -108,7 +114,7 @@ public class Squeak extends Message {
         // parse the script pubkey
         scriptLen = (int) readVarInt();
         length = cursor - offset + scriptLen;
-        scriptBytes = readBytes(scriptLen);
+        scriptPubKeyBytes = readBytes(scriptLen);
 
         hashDataKey = readHash();
 
@@ -208,7 +214,7 @@ public class Squeak extends Message {
         stream.write(hashBlock.getReversedBytes());
         Utils.uint32ToByteStreamLE(nBlockHeight, stream);
         stream.write(new VarInt(scriptLen).encode());
-        stream.write(scriptBytes);
+        stream.write(scriptPubKeyBytes);
         stream.write(hashDataKey.getReversedBytes());
         vchIv.bitcoinSerializeToStream(stream);
         Utils.uint32ToByteStreamLE(nTime, stream);
@@ -224,7 +230,7 @@ public class Squeak extends Message {
         stream.write(hashBlock.getReversedBytes());
         Utils.uint32ToByteStreamLE(nBlockHeight, stream);
         stream.write(new VarInt(scriptLen).encode());
-        stream.write(scriptBytes);
+        stream.write(scriptPubKeyBytes);
         stream.write(hashDataKey.getReversedBytes());
         vchIv.bitcoinSerializeToStream(stream);
         Utils.uint32ToByteStreamLE(nTime, stream);
@@ -245,6 +251,36 @@ public class Squeak extends Message {
 
     public Sha256Hash getHashBlock() {
         return hashBlock;
+    }
+
+    public Script getScriptPubKey() throws ScriptException {
+        if (scriptPubKey == null) {
+            scriptPubKey = new Script(scriptPubKeyBytes);
+        }
+        return scriptPubKey;
+    }
+
+    public Sha256Hash getHashDataKey() throws ScriptException {
+        return hashDataKey;
+    }
+
+    public VCH_IV getVchIv() throws ScriptException {
+        return vchIv;
+    }
+
+    /**
+     * Returns the script that is fed to the referenced output (scriptPubKey) script in order to satisfy it: usually
+     * contains signatures and maybe keys, but can contain arbitrary data if the output script accepts it.
+     */
+    public Script getScriptSig() throws ScriptException {
+        // Transactions that generate new coins don't actually have a script. Instead this
+        // parameter is overloaded to be something totally different.
+        Script script = scriptSig == null ? null : scriptSig.get();
+        if (script == null) {
+            script = new Script(scriptPubKeyBytes);
+            scriptSig = new WeakReference<>(script);
+        }
+        return script;
     }
 
     /**
@@ -331,6 +367,22 @@ public class Squeak extends Message {
         protected void bitcoinSerializeToStream(OutputStream stream) throws IOException {
             assert bytes.length == CIPHER_BLOCK_LENGTH;
             stream.write(bytes);
+        }
+
+        public byte[] getBytes() {
+            return bytes;
+        }
+
+        /**
+         * Returns a reversed copy of the internal byte array.
+         */
+        public byte[] getReversedBytes() {
+            return Utils.reverseBytes(bytes);
+        }
+
+        @Override
+        public String toString() {
+            return Utils.HEX.encode(getReversedBytes());
         }
     }
 

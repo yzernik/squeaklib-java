@@ -7,6 +7,7 @@ package io.github.yzernik.core;
         import org.bitcoinj.params.MainNetParams;
         import org.bitcoinj.params.TestNet3Params;
         import org.bitcoinj.params.UnitTestParams;
+        import org.bitcoinj.script.ScriptOpCodes;
         import org.junit.Before;
         import org.junit.Test;
 
@@ -41,14 +42,24 @@ public class SqueakTest {
         assertEquals(exampleSqueak.getVersion(), 1);
     }
 
-    public static String convertBytesToHex(byte[] bytes) {
-        StringBuilder result = new StringBuilder();
-        for (byte temp : bytes) {
-            int decimal = (int) temp & 0xff;  // bytes widen to int, need mask, prevent sign extension
-            String hex = Integer.toHexString(decimal);
-            result.append(hex);
-        }
-        return result.toString();
+    @Test
+    public void testGetPubKey() throws Exception {
+        System.out.println(exampleSqueak.getScriptPubKey());
+        assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(0).opcode, ScriptOpCodes.OP_DUP);
+        assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(1).opcode, ScriptOpCodes.OP_HASH160);
+        assert(exampleSqueak.getScriptPubKey().getChunks().get(2).isPushData());
+        assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(3).opcode, ScriptOpCodes.OP_EQUALVERIFY);
+        assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(4).opcode, ScriptOpCodes.OP_CHECKSIG);
+    }
+
+    @Test
+    public void testHashDataKey() throws Exception {
+        assertEquals("a892b040034ca5e70da84d7e5997653004df21de39e9db946692ebe7819a8f60", exampleSqueak.getHashDataKey().toString());
+    }
+
+    @Test
+    public void testIV() throws Exception {
+        assertEquals("036516e4f1c0c55e1201e0a28f016ff3", exampleSqueak.getVchIv().toString());
     }
 
 /*
