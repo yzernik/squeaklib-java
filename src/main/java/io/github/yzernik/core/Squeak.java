@@ -268,6 +268,15 @@ public class Squeak extends Message {
         return vchIv;
     }
 
+    public long getTime() throws ScriptException {
+        return nTime;
+    }
+
+
+    public long getNonce() throws ScriptException {
+        return nNonce;
+    }
+
     /**
      * Returns the script that is fed to the referenced output (scriptPubKey) script in order to satisfy it: usually
      * contains signatures and maybe keys, but can contain arbitrary data if the output script accepts it.

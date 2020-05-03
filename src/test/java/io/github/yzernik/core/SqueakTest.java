@@ -62,55 +62,24 @@ public class SqueakTest {
         assertEquals("036516e4f1c0c55e1201e0a28f016ff3", exampleSqueak.getVchIv().toString());
     }
 
-/*
     @Test
-    public void testWork() throws Exception {
-        BigInteger work = TESTNET.getGenesisBlock().getWork();
-        double log2Work = Math.log(work.longValue()) / Math.log(2);
-        // This number is printed by Bitcoin Core at startup as the calculated value of chainWork on testnet:
-        // UpdateTip: new best=000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943 height=0 version=0x00000001 log2_work=32.000022 tx=1 date='2011-02-02 23:16:42' ...
-        assertEquals(32.000022, log2Work, 0.0000001);
+    public void testTime() throws Exception {
+        assertEquals(1588050767, exampleSqueak.getTime());
     }
+
+
+    @Test
+    public void testNonce() throws Exception {
+        assertEquals(0x2885819d, exampleSqueak.getNonce());
+    }
+
+/*
 
     @Test
     public void testBlockVerification() throws Exception {
         block700000.verify(Block.BLOCK_HEIGHT_GENESIS, EnumSet.noneOf(Block.VerifyFlag.class));
     }
 
-    @SuppressWarnings("deprecation")
-    @Test
-    public void testDate() throws Exception {
-        assertEquals("2016-02-13T22:59:39Z", Utils.dateTimeFormat(block700000.getTime()));
-    }
-
-    @Test
-    public void testProofOfWork() throws Exception {
-        // This params accepts any difficulty target.
-        Block block = UNITTEST.getDefaultSerializer().makeBlock(block700000Bytes);
-        block.setNonce(12346);
-        try {
-            block.verify(Block.BLOCK_HEIGHT_GENESIS, EnumSet.noneOf(Block.VerifyFlag.class));
-            fail();
-        } catch (VerificationException e) {
-            // Expected.
-        }
-        // Blocks contain their own difficulty target. The BlockChain verification mechanism is what stops real blocks
-        // from containing artificially weak difficulties.
-        block.setDifficultyTarget(Block.EASIEST_DIFFICULTY_TARGET);
-        // Now it should pass.
-        block.verify(Block.BLOCK_HEIGHT_GENESIS, EnumSet.noneOf(Block.VerifyFlag.class));
-        // Break the nonce again at the lower difficulty level so we can try solving for it.
-        block.setNonce(1);
-        try {
-            block.verify(Block.BLOCK_HEIGHT_GENESIS, EnumSet.noneOf(Block.VerifyFlag.class));
-            fail();
-        } catch (VerificationException e) {
-            // Expected to fail as the nonce is no longer correct.
-        }
-        // Should find an acceptable nonce.
-        block.solve();
-        block.verify(Block.BLOCK_HEIGHT_GENESIS, EnumSet.noneOf(Block.VerifyFlag.class));
-    }
 
     @Test
     public void testBadTransactions() throws Exception {
