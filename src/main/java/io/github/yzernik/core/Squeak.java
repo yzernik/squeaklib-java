@@ -525,5 +525,21 @@ public class Squeak extends Message {
             assert bytes.length == DATA_KEY_LENGTH;
             stream.write(bytes);
         }
+
+        public byte[] getBytes() {
+            return bytes;
+        }
+
+        /**
+         * Returns a reversed copy of the internal byte array.
+         */
+        public byte[] getReversedBytes() {
+            return Utils.reverseBytes(bytes);
+        }
+
+        @Override
+        public String toString() {
+            return Utils.HEX.encode(getReversedBytes());
+        }
     }
 }
