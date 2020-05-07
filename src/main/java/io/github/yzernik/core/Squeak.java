@@ -297,18 +297,19 @@ public class Squeak extends Message {
         // parameter is overloaded to be something totally different.
         SqueakScript script = scriptSig == null ? null : scriptSig.get();
         if (script == null) {
-            script = new SqueakScript(scriptPubKeyBytes);
+            script = new SqueakScript(scriptSigBytes);
             scriptSig = new WeakReference<>(script);
         }
         return script;
     }
 
+    public VCH_DATA_KEY getVchDataKey() {
+        return vchDataKey;
+    }
+
     /**
      * Verifies both the header and that the transactions hash to the merkle root.
      *
-     * @param height block height, if known, or -1 otherwise.
-     * @param flags flags to indicate which tests should be applied (i.e.
-     * whether to test for height in the coinbase transaction).
      * @throws VerificationException if there was an error verifying the block.
      */
     public void verify() throws VerificationException {
@@ -398,6 +399,8 @@ public class Squeak extends Message {
         s.append("   vchIv: ").append(getVchIv()).append("\n");
         s.append("   time: ").append(nTime).append("\n");
         s.append("   nonce: ").append(getNonce()).append("\n");
+        s.append("   script sig: ").append(getScriptSig()).append("\n");
+        s.append("   vchDataKey: ").append(getVchDataKey()).append("\n");
         return s.toString();
     }
 

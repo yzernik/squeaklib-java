@@ -9,9 +9,10 @@ public class SqueakTransaction extends Transaction {
 
     public SqueakTransaction(NetworkParameters params, Sha256Hash hash) {
         super(params);
-        hash = hash;
+        this.hash = hash;
     }
 
+    @Override
     public Sha256Hash hashForSignature(int inputIndex, byte[] connectedScript, byte sigHashType) {
         return hash;
     }
