@@ -70,7 +70,7 @@ public class Squeak extends Message {
 
     // The script bytes are parsed and turned into a Script on demand.
     @Nullable
-    private WeakReference<Script> scriptSig;
+    private WeakReference<SqueakScript> scriptSig;
 
     @Nullable
     VCH_DATA_KEY vchDataKey;
@@ -292,12 +292,12 @@ public class Squeak extends Message {
      * Returns the script that is fed to the referenced output (scriptPubKey) script in order to satisfy it: usually
      * contains signatures and maybe keys, but can contain arbitrary data if the output script accepts it.
      */
-    public Script getScriptSig() throws ScriptException {
+    public SqueakScript getScriptSig() throws ScriptException {
         // Transactions that generate new coins don't actually have a script. Instead this
         // parameter is overloaded to be something totally different.
-        Script script = scriptSig == null ? null : scriptSig.get();
+        SqueakScript script = scriptSig == null ? null : scriptSig.get();
         if (script == null) {
-            script = new Script(scriptPubKeyBytes);
+            script = new SqueakScript(scriptPubKeyBytes);
             scriptSig = new WeakReference<>(script);
         }
         return script;
@@ -340,11 +340,33 @@ public class Squeak extends Message {
      * @throws VerificationException if there was an error verifying the block.
      */
     public void verifyContent() throws VerificationException {
-/*        // Now we need to check that the body of the block actually matches the headers. The network won't generate
+        // Content length check
+        if (encContent.bytes.length != EncContent.ENC_CONTENT_LENGTH)
+            throw new VerificationException("verifyContent() : encContent length does not match the required length");
+
+        // Content hash check
+        Sha256Hash encContentHash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(encContent.bytes));
+        if (!encContentHash.equals(hashEncContent))
+            throw new VerificationException("verifyContent() : hashEncContent does not match hash of encContent");
+
+        // Squeak signature check
+        SqueakScript sigScript = getScriptSig();
+        Sha256Hash squeakHash = getHash();
+        Script pubkeyScript = getScriptPubKey();
+        try {
+            Transaction tx = new SqueakTransaction(params, squeakHash);
+            // sigScript.correctlySpends(tx, 0, pubkeyScript, EnumSet.noneOf(Script.VerifyFlag.class));
+            sigScript.correctlyAuthors(params, squeakHash, pubkeyScript, EnumSet.noneOf(Script.VerifyFlag.class));
+        } catch (ScriptException e) {
+            System.err.println(e);
+            throw new VerificationException("verifyContent() : invalid signature for the given squeak");
+        }
+
+        // Now we need to check that the body of the block actually matches the headers. The network won't generate
         // an invalid block, but if we didn't validate this then an untrusted man-in-the-middle could obtain the next
         // valid block from the network and simply replace the transactions in it with their own fictional
         // transactions that reference spent or non-existent inputs.
-        if (transactions.isEmpty())
+/*        if (transactions.isEmpty())
             throw new VerificationException("Block had no transactions");
         if (this.getOptimalEncodingMessageSize() > MAX_BLOCK_SIZE)
             throw new VerificationException("Block larger than MAX_BLOCK_SIZE");
@@ -370,12 +392,12 @@ public class Squeak extends Message {
         s.append("   hash enc content: ").append(getHashEncContent()).append("\n");
         s.append("   hash reply sqk: ").append(getHashReplySqk()).append("\n");
         s.append("   hash block: ").append(getHashBlock()).append("\n");
-        s.append("   block height: ").append(nBlockHeight).append(")\n");
-        s.append("   script pub key: ").append(scriptPubKey).append(")\n");
-        s.append("   hash data key: ").append(hashDataKey).append(")\n");
-        s.append("   vchIv: ").append(vchIv).append("\n");
+        s.append("   block height: ").append(nBlockHeight).append("\n");
+        s.append("   script pub key: ").append(getScriptPubKey()).append("\n");
+        s.append("   hash data key: ").append(getHashDataKey()).append("\n");
+        s.append("   vchIv: ").append(getVchIv()).append("\n");
         s.append("   time: ").append(nTime).append("\n");
-        s.append("   nonce: ").append(nNonce).append("\n");
+        s.append("   nonce: ").append(getNonce()).append("\n");
         return s.toString();
     }
 

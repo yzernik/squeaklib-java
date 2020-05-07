@@ -29,7 +29,6 @@ public class SqueakTest {
         NetworkParameters networkParameters = TESTNET;
         SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, true);
         exampleSqueak = squeakSerializer.makeSqueak(exampleSqueakBytes);
-        System.out.println(exampleSqueak);
     }
 
     @Test
