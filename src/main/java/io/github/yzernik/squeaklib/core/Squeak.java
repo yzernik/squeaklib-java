@@ -13,6 +13,8 @@ import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.util.EnumSet;
 
+import static org.bitcoinj.core.Utils.HEX;
+
 
 public class Squeak extends Message {
 
@@ -457,11 +459,11 @@ public class Squeak extends Message {
         s.append("   block height: ").append(nBlockHeight).append("\n");
         s.append("   script pub key: ").append(getScriptPubKey()).append("\n");
         s.append("   hash data key: ").append(getHashDataKey()).append("\n");
-        s.append("   vchIv: ").append(getVchIv()).append("\n");
+        s.append("   vchIv: ").append(HEX.encode(getVchIv())).append("\n");
         s.append("   time: ").append(nTime).append("\n");
         s.append("   nonce: ").append(getNonce()).append("\n");
         s.append("   script sig: ").append(getScriptSig()).append("\n");
-        s.append("   vchDataKey: ").append(getDataKey()).append("\n");
+        s.append("   vchDataKey: ").append(HEX.encode(getDataKey())).append("\n");
         return s.toString();
     }
 
