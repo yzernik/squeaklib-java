@@ -13,6 +13,8 @@ import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.util.EnumSet;
 
+import static org.bitcoinj.core.Utils.HEX;
+
 
 public class Squeak extends Message {
 
@@ -20,19 +22,16 @@ public class Squeak extends Message {
 
     /** How many bytes are required to represent a block header WITHOUT the trailing 00 length byte. */
     public static final int HEADER_SIZE = 186;
+    public static final int IV_SIZE = 16;
+    public static final int DATA_KEY_SIZE = 32;
+    public static final int ENC_CONTENT_SIZE = 1136;
 
     /** Value to use if the block height is unknown */
     public static final int BLOCK_HEIGHT_UNKNOWN = -1;
     /** Height of the first block */
     public static final int BLOCK_HEIGHT_GENESIS = 0;
 
-    public static final long BLOCK_VERSION_GENESIS = 1;
-    /** Block version introduced in BIP 34: Height in coinbase */
-    public static final long BLOCK_VERSION_BIP34 = 2;
-    /** Block version introduced in BIP 66: Strict DER signatures */
-    public static final long BLOCK_VERSION_BIP66 = 3;
-    /** Block version introduced in BIP 65: OP_CHECKLOCKTIMEVERIFY */
-    public static final long BLOCK_VERSION_BIP65 = 4;
+    public static final long BLOCK_VERSION_ALPHA = 1;
 
     // Fields defined as part of the protocol format.
     private long version;
@@ -53,7 +52,7 @@ public class Squeak extends Message {
     private int scriptLen;
 
     private Sha256Hash hashDataKey;
-    private VCH_IV vchIv;
+    private byte[] vchIv;
 
     private long nTime;
     private long nNonce;
@@ -63,7 +62,7 @@ public class Squeak extends Message {
     // TODO: Get rid of all the direct accesses to this field. It's a long-since unnecessary holdover from the Dalvik days.
     /** If null, it means this object holds only the headers. */
     @Nullable
-    EncContent encContent;
+    byte[] encContent;
 
     @Nullable
     private byte[] scriptSigBytes;
@@ -73,7 +72,7 @@ public class Squeak extends Message {
     private WeakReference<SqueakScript> scriptSig;
 
     @Nullable
-    VCH_DATA_KEY vchDataKey;
+    byte[] vchDataKey;
 
     /** Stores the hash of the block. If null, getHash() will recalculate it. */
     private Sha256Hash hash;
@@ -102,6 +101,16 @@ public class Squeak extends Message {
     }
 
 
+    /** Special case constructor, used for the genesis node, cloneAsHeader and unit tests. */
+    public Squeak(NetworkParameters params, long setVersion)
+            throws ProtocolException {
+        super(params);
+        // Set up a few basic things. We are not complete after this though.
+        version = setVersion;
+        length = HEADER_SIZE;
+    }
+
+
     @Override
     protected void parse() throws ProtocolException {
         // header
@@ -120,8 +129,7 @@ public class Squeak extends Message {
         hashDataKey = readHash();
 
         // Get the vch_iv
-        vchIv = new VCH_IV(params, payload, cursor, this, serializer, UNKNOWN_LENGTH, null);
-        cursor += vchIv.getMessageSize();
+        vchIv = readBytes(IV_SIZE);
 
         nTime = readUint32();
         nNonce = readUint32();
@@ -151,18 +159,17 @@ public class Squeak extends Message {
         }
 
         // Get the enc content.
-        encContent = new EncContent(params, payload, cursor, this, serializer, UNKNOWN_LENGTH, null);
-        cursor += encContent.getMessageSize();
+        encContent = readBytes(ENC_CONTENT_SIZE);
 
         // Get the script sig.
         int scriptLen = (int) readVarInt();
         length = cursor - offset + scriptLen + 4;
         scriptSigBytes = readBytes(scriptLen);
+        // TODO: Maybe uncomment.
         // scriptSig = new Script(scriptSigBytes);
 
         // Get the data key.
-        vchDataKey = new VCH_DATA_KEY(params, payload, cursor, this, serializer, UNKNOWN_LENGTH, null);
-        cursor += vchDataKey.getMessageSize();
+        vchDataKey = readBytes(DATA_KEY_SIZE);
 
         contentBytesValid = serializer.isParseRetainMode();
     }
@@ -185,6 +192,34 @@ public class Squeak extends Message {
         if (hash == null)
             hash = calculateHash();
         return hash;
+    }
+
+    /** Returns a copy of the squeak, but without any content. */
+    public Squeak cloneAsHeader() {
+        Squeak squeak = new Squeak(params, BLOCK_VERSION_ALPHA);
+        copySqueakHeaderTo(squeak);
+        return squeak;
+    }
+
+    /** Copy the squeak without content into the provided empty squeak. */
+    protected final void copySqueakHeaderTo(final Squeak squeak) {
+        squeak.nNonce = nNonce;
+        squeak.hashEncContent = hashEncContent;
+        squeak.hashReplySqk = hashReplySqk;
+        squeak.hashBlock = hashBlock;
+        squeak.nBlockHeight = nBlockHeight;
+        squeak.scriptPubKey = scriptPubKey;
+        squeak.scriptSigBytes = scriptPubKeyBytes;
+        squeak.hashEncContent = hashEncContent;
+        squeak.version = version;
+        squeak.nTime = nTime;
+        squeak.encContent = null;
+        squeak.scriptSig = null;
+        squeak.scriptSigBytes = null;
+        squeak.vchDataKey = null;
+
+
+        squeak.hash = getHash();
     }
 
     /**
@@ -217,7 +252,7 @@ public class Squeak extends Message {
         stream.write(new VarInt(scriptLen).encode());
         stream.write(scriptPubKeyBytes);
         stream.write(hashDataKey.getReversedBytes());
-        vchIv.bitcoinSerializeToStream(stream);
+        stream.write(vchIv);
         Utils.uint32ToByteStreamLE(nTime, stream);
         Utils.uint32ToByteStreamLE(nNonce, stream);
     }
@@ -233,7 +268,7 @@ public class Squeak extends Message {
         stream.write(new VarInt(scriptLen).encode());
         stream.write(scriptPubKeyBytes);
         stream.write(hashDataKey.getReversedBytes());
-        vchIv.bitcoinSerializeToStream(stream);
+        stream.write(vchIv);
         Utils.uint32ToByteStreamLE(nTime, stream);
         Utils.uint32ToByteStreamLE(nNonce, stream);
     }
@@ -275,7 +310,7 @@ public class Squeak extends Message {
         return hashDataKey;
     }
 
-    public VCH_IV getVchIv() throws ScriptException {
+    public byte[] getVchIv() throws ScriptException {
         return vchIv;
     }
 
@@ -311,8 +346,28 @@ public class Squeak extends Message {
         scriptSigBytes = script.getProgram();
     }
 
-    public VCH_DATA_KEY getVchDataKey() {
+    /**
+     * Set the data key.
+     */
+    public void setDataKey(byte[] dataKey) throws ScriptException {
+        vchDataKey = dataKey;
+    }
+
+    /**
+     * Clear the data key.
+     */
+    public void clearDataKey() throws ScriptException {
+        vchDataKey = null;
+    }
+
+    public byte[] getDataKey() {
         return vchDataKey;
+    }
+
+    public byte[] getDecryptedContent() {
+        byte[] dataKey = getDataKey();
+        // TODO: implement
+        return null;
     }
 
     /**
@@ -350,11 +405,11 @@ public class Squeak extends Message {
      */
     public void verifyContent() throws VerificationException {
         // Content length check
-        if (encContent.bytes.length != EncContent.ENC_CONTENT_LENGTH)
+        if (encContent.length != ENC_CONTENT_SIZE)
             throw new VerificationException("verifyContent() : encContent length does not match the required length");
 
         // Content hash check
-        Sha256Hash encContentHash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(encContent.bytes));
+        Sha256Hash encContentHash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(encContent));
         if (!encContentHash.equals(hashEncContent))
             throw new VerificationException("verifyContent() : hashEncContent does not match hash of encContent");
 
@@ -404,150 +459,13 @@ public class Squeak extends Message {
         s.append("   block height: ").append(nBlockHeight).append("\n");
         s.append("   script pub key: ").append(getScriptPubKey()).append("\n");
         s.append("   hash data key: ").append(getHashDataKey()).append("\n");
-        s.append("   vchIv: ").append(getVchIv()).append("\n");
+        s.append("   vchIv: ").append(HEX.encode(getVchIv())).append("\n");
         s.append("   time: ").append(nTime).append("\n");
         s.append("   nonce: ").append(getNonce()).append("\n");
         s.append("   script sig: ").append(getScriptSig()).append("\n");
-        s.append("   vchDataKey: ").append(getVchDataKey()).append("\n");
+        s.append("   vchDataKey: ").append(HEX.encode(getDataKey())).append("\n");
         return s.toString();
     }
 
 
-    public static class EncContent extends ChildMessage {
-        private static int ENC_CONTENT_LENGTH = 1136;
-        private byte[] bytes;
-
-        /**
-         * Creates a transaction by reading payload starting from offset bytes in. Length of a transaction is fixed.
-         * @param params NetworkParameters object.
-         * @param payload Bitcoin protocol formatted byte array containing message content.
-         * @param offset The location of the first payload byte within the array.
-         * @param parent The parent of the transaction.
-         * @param setSerializer The serializer to use for this transaction.
-         * @param length The length of message if known.  Usually this is provided when deserializing of the wire
-         * as the length will be provided as part of the header.  If unknown then set to Message.UNKNOWN_LENGTH
-         * @param hashFromHeader Used by BitcoinSerializer. The serializer has to calculate a hash for checksumming so to
-         * avoid wasting the considerable effort a set method is provided so the serializer can set it. No verification
-         * is performed on this hash.
-         * @throws ProtocolException
-         */
-        public EncContent(NetworkParameters params, byte[] payload, int offset, @Nullable Message parent,
-                           MessageSerializer setSerializer, int length, @Nullable byte[] hashFromHeader) throws ProtocolException {
-            super(params, payload, offset, parent, setSerializer, length);
-            /* TODO: cache the content hash
-            if (hashFromHeader != null) {
-                cachedWTxId = Sha256Hash.wrapReversed(hashFromHeader);
-                if (!hasWitnesses())
-                    cachedTxId = cachedWTxId;
-            }
-            */
-        }
-
-        @Override
-        protected void parse() throws ProtocolException {
-            bytes = readBytes(ENC_CONTENT_LENGTH);
-            length = ENC_CONTENT_LENGTH;
-        }
-
-        protected void bitcoinSerializeToStream(OutputStream stream) throws IOException {
-            assert bytes.length == ENC_CONTENT_LENGTH;
-            stream.write(bytes);
-        }
-    }
-
-    public static class VCH_IV extends ChildMessage {
-        private static int CIPHER_BLOCK_LENGTH = 16;
-        private byte[] bytes;
-
-        public VCH_IV(NetworkParameters params, byte[] payload, int offset, @Nullable Message parent,
-                            MessageSerializer setSerializer, int length, @Nullable byte[] hashFromHeader) throws ProtocolException {
-            super(params, payload, offset, parent, setSerializer, length);
-        }
-
-        @Override
-        protected void parse() throws ProtocolException {
-            bytes = readBytes(CIPHER_BLOCK_LENGTH);
-            length = CIPHER_BLOCK_LENGTH;
-        }
-
-        protected void bitcoinSerializeToStream(OutputStream stream) throws IOException {
-            assert bytes.length == CIPHER_BLOCK_LENGTH;
-            stream.write(bytes);
-        }
-
-        public byte[] getBytes() {
-            return bytes;
-        }
-
-        /**
-         * Returns a reversed copy of the internal byte array.
-         */
-        public byte[] getReversedBytes() {
-            return Utils.reverseBytes(bytes);
-        }
-
-        @Override
-        public String toString() {
-            return Utils.HEX.encode(getReversedBytes());
-        }
-    }
-
-
-    public static class VCH_DATA_KEY extends ChildMessage {
-        private static int DATA_KEY_LENGTH = 32;
-        private byte[] bytes;
-
-        /**
-         * Creates a transaction by reading payload starting from offset bytes in. Length of a transaction is fixed.
-         * @param params NetworkParameters object.
-         * @param payload Bitcoin protocol formatted byte array containing message content.
-         * @param offset The location of the first payload byte within the array.
-         * @param parent The parent of the transaction.
-         * @param setSerializer The serializer to use for this transaction.
-         * @param length The length of message if known.  Usually this is provided when deserializing of the wire
-         * as the length will be provided as part of the header.  If unknown then set to Message.UNKNOWN_LENGTH
-         * @param hashFromHeader Used by BitcoinSerializer. The serializer has to calculate a hash for checksumming so to
-         * avoid wasting the considerable effort a set method is provided so the serializer can set it. No verification
-         * is performed on this hash.
-         * @throws ProtocolException
-         */
-        public VCH_DATA_KEY(NetworkParameters params, byte[] payload, int offset, @Nullable Message parent,
-                          MessageSerializer setSerializer, int length, @Nullable byte[] hashFromHeader) throws ProtocolException {
-            super(params, payload, offset, parent, setSerializer, length);
-            /* TODO: cache the data key hash
-            if (hashFromHeader != null) {
-                cachedWTxId = Sha256Hash.wrapReversed(hashFromHeader);
-                if (!hasWitnesses())
-                    cachedTxId = cachedWTxId;
-            }
-            */
-        }
-
-        @Override
-        protected void parse() throws ProtocolException {
-            bytes = readBytes(DATA_KEY_LENGTH);
-            length = DATA_KEY_LENGTH;
-        }
-
-        protected void bitcoinSerializeToStream(OutputStream stream) throws IOException {
-            assert bytes.length == DATA_KEY_LENGTH;
-            stream.write(bytes);
-        }
-
-        public byte[] getBytes() {
-            return bytes;
-        }
-
-        /**
-         * Returns a reversed copy of the internal byte array.
-         */
-        public byte[] getReversedBytes() {
-            return Utils.reverseBytes(bytes);
-        }
-
-        @Override
-        public String toString() {
-            return Utils.HEX.encode(getReversedBytes());
-        }
-    }
 }

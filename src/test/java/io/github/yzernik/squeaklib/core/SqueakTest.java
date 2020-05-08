@@ -1,17 +1,18 @@
 package io.github.yzernik.squeaklib.core;
 
-        import com.google.common.io.ByteStreams;
+import com.google.common.io.ByteStreams;
+import org.bitcoinj.core.Context;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.params.MainNetParams;
+import org.bitcoinj.params.TestNet3Params;
+import org.bitcoinj.params.UnitTestParams;
+import org.bitcoinj.script.ScriptOpCodes;
+import org.junit.Before;
+import org.junit.Test;
 
-        import org.bitcoinj.core.Context;
-        import org.bitcoinj.core.NetworkParameters;
-        import org.bitcoinj.params.MainNetParams;
-        import org.bitcoinj.params.TestNet3Params;
-        import org.bitcoinj.params.UnitTestParams;
-        import org.bitcoinj.script.ScriptOpCodes;
-        import org.junit.Before;
-        import org.junit.Test;
-
-        import static org.junit.Assert.*;
+import static org.bitcoinj.core.Utils.HEX;
+import static org.bitcoinj.core.Utils.reverseBytes;
+import static org.junit.Assert.assertEquals;
 
 public class SqueakTest {
     private static final NetworkParameters TESTNET = TestNet3Params.get();
@@ -70,7 +71,7 @@ public class SqueakTest {
 
     @Test
     public void testIV() throws Exception {
-        assertEquals("036516e4f1c0c55e1201e0a28f016ff3", exampleSqueak.getVchIv().toString());
+        assertEquals("036516e4f1c0c55e1201e0a28f016ff3", HEX.encode(reverseBytes(exampleSqueak.getVchIv())));
     }
 
     @Test
