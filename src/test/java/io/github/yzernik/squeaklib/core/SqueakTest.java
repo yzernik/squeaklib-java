@@ -103,7 +103,6 @@ public class SqueakTest {
         exampleSqueakBadSig.verify();
     }
 
-/*
     @Test(expected = VerificationException.class)
     public void testVerifyBadDataKey() throws Exception {
         exampleSqueakBadDataKey.verify();
@@ -113,7 +112,15 @@ public class SqueakTest {
     public void testVerifyMissingDataKey() throws Exception {
         exampleSqueakMissingDataKey.verify();
     }
-*/
+
+    @Test
+    public void testGetDecryptedContent() throws Exception {
+        byte[] decryptedContent = exampleSqueak.getDecryptedContent();
+        String decryptedMessage = new String(decryptedContent).trim();
+
+        assertEquals(decryptedContent.length, 1120);
+        assertEquals(decryptedMessage, "Hello world!");
+    }
 
 /*
 

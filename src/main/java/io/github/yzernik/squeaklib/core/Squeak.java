@@ -7,10 +7,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.EnumSet;
 
 import static org.bitcoinj.core.Utils.HEX;
@@ -364,10 +370,8 @@ public class Squeak extends Message {
         return vchDataKey;
     }
 
-    public byte[] getDecryptedContent() {
-        byte[] dataKey = getDataKey();
-        // TODO: implement
-        return null;
+    public byte[] getEncContent() {
+        return encContent;
     }
 
     /**
@@ -447,14 +451,28 @@ public class Squeak extends Message {
     public void verifyDataKey() throws VerificationException {
         byte[] dataKey = getDataKey();
         Sha256Hash dataKeyHash = getHashDataKey();
+        Sha256Hash hashedDataKey;
 
-        if (dataKey == null)
+        try {
+            hashedDataKey = hashDataKey(dataKey);
+        } catch (Exception e) {
             throw new VerificationException("verifyContent() : invalid data key for the given squeak");
+        }
 
-        if (!dataKeyHash.equals(Sha256Hash.wrapReversed(Sha256Hash.hash(dataKey))))
+        if (!dataKeyHash.equals(hashedDataKey))
             throw new VerificationException("verifyContent() : invalid data key for the given squeak");
     }
 
+    private Sha256Hash hashDataKey(byte[] dataKey) throws Exception{
+        return Sha256Hash.wrapReversed(Sha256Hash.hash(dataKey));
+    }
+
+    public byte[] getDecryptedContent() throws Exception {
+        byte[] dataKey = getDataKey();
+        byte[] iv = getVchIv();
+        byte[] cipherText = getEncContent();
+        return Encryption.decryptContent(dataKey, iv, cipherText);
+    }
 
 
     /**
