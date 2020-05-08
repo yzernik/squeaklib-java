@@ -17,7 +17,14 @@ public class EncryptionTest {
 
     @Test
     public void testEncryptDecrypt() throws Exception {
-        // TODO
+        byte[] dataKey = Encryption.generateDataKey();
+        byte[] iv = Encryption.generateIV();
+        String message = "encrypted data";
+        byte[] messageBytes = message.getBytes();
+        byte[] encryptedMsg = Encryption.encryptContent(dataKey, iv, messageBytes);
+        byte[] decryptedMsg = Encryption.decryptContent(dataKey, iv, encryptedMsg);
+
+        assertEquals(new String(decryptedMsg), message);
     }
 
 }

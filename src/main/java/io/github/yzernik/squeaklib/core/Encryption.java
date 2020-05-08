@@ -9,6 +9,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 
 public class Encryption {
 
@@ -41,7 +42,17 @@ public class Encryption {
     }
 
     public static byte[] generateDataKey() {
-        return null;
+        SecureRandom random = new SecureRandom();
+        byte bytes[] = new byte[DATA_KEY_LENGTH];
+        random.nextBytes(bytes);
+        return bytes;
+    }
+
+    public static byte[] generateIV() {
+        SecureRandom random = new SecureRandom();
+        byte bytes[] = new byte[CIPHER_BLOCK_LENGTH];
+        random.nextBytes(bytes);
+        return bytes;
     }
 
 }
