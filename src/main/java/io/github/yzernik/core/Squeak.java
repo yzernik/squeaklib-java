@@ -303,6 +303,14 @@ public class Squeak extends Message {
         return script;
     }
 
+    /**
+     * Set the sig script.
+     */
+    public void setScriptSig(SqueakScript script) throws ScriptException {
+        scriptSig = null;
+        scriptSigBytes = script.getProgram();
+    }
+
     public VCH_DATA_KEY getVchDataKey() {
         return vchDataKey;
     }

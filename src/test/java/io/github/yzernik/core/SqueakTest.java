@@ -20,6 +20,7 @@ public class SqueakTest {
 
     private byte[] exampleSqueakBytes;
     private Squeak exampleSqueak;
+    private Squeak exampleSqueakBadSig;
 
     @Before
     public void setUp() throws Exception {
@@ -29,6 +30,18 @@ public class SqueakTest {
         NetworkParameters networkParameters = TESTNET;
         SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, true);
         exampleSqueak = squeakSerializer.makeSqueak(exampleSqueakBytes);
+    }
+
+    @Before
+    public void setUpBadSignature() throws Exception {
+        new Context(TESTNET);
+        NetworkParameters networkParameters = TESTNET;
+        SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, true);
+        exampleSqueakBadSig = squeakSerializer.makeSqueak(exampleSqueakBytes);
+        byte[] badScriptSigBytes = exampleSqueakBadSig.getScriptSig().getProgram();
+        badScriptSigBytes[10] = (byte) 'x';
+        SqueakScript badScriptSig = new SqueakScript(badScriptSigBytes);
+        exampleSqueakBadSig.setScriptSig(badScriptSig);
     }
 
     @Test
@@ -75,28 +88,12 @@ public class SqueakTest {
         exampleSqueak.verify();
     }
 
+    @Test(expected = VerificationException.class)
+    public void testVerifyBadSignature() throws Exception {
+        exampleSqueakBadSig.verify();
+    }
+
 /*
-
-    @Test
-    public void testBlockVerification() throws Exception {
-        block700000.verify(Block.BLOCK_HEIGHT_GENESIS, EnumSet.noneOf(Block.VerifyFlag.class));
-    }
-
-
-    @Test
-    public void testBadTransactions() throws Exception {
-        // Re-arrange so the coinbase transaction is not first.
-        Transaction tx1 = block700000.transactions.get(0);
-        Transaction tx2 = block700000.transactions.get(1);
-        block700000.transactions.set(0, tx2);
-        block700000.transactions.set(1, tx1);
-        try {
-            block700000.verify(Block.BLOCK_HEIGHT_GENESIS, EnumSet.noneOf(Block.VerifyFlag.class));
-            fail();
-        } catch (VerificationException e) {
-            // We should get here.
-        }
-    }
 
     @Test
     public void testHeaderParse() throws Exception {
