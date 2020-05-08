@@ -21,6 +21,8 @@ public class Squeak extends Message {
     /** How many bytes are required to represent a block header WITHOUT the trailing 00 length byte. */
     public static final int HEADER_SIZE = 186;
     public static final int IV_SIZE = 16;
+    public static final int DATA_KEY_SIZE = 32;
+    public static final int ENC_CONTENT_SIZE = 1136;
 
     /** Value to use if the block height is unknown */
     public static final int BLOCK_HEIGHT_UNKNOWN = -1;
@@ -58,7 +60,7 @@ public class Squeak extends Message {
     // TODO: Get rid of all the direct accesses to this field. It's a long-since unnecessary holdover from the Dalvik days.
     /** If null, it means this object holds only the headers. */
     @Nullable
-    EncContent encContent;
+    byte[] encContent;
 
     @Nullable
     private byte[] scriptSigBytes;
@@ -68,7 +70,7 @@ public class Squeak extends Message {
     private WeakReference<SqueakScript> scriptSig;
 
     @Nullable
-    VCH_DATA_KEY vchDataKey;
+    byte[] vchDataKey;
 
     /** Stores the hash of the block. If null, getHash() will recalculate it. */
     private Sha256Hash hash;
@@ -155,8 +157,7 @@ public class Squeak extends Message {
         }
 
         // Get the enc content.
-        encContent = new EncContent(params, payload, cursor, this, serializer, UNKNOWN_LENGTH, null);
-        cursor += encContent.getMessageSize();
+        encContent = readBytes(ENC_CONTENT_SIZE);
 
         // Get the script sig.
         int scriptLen = (int) readVarInt();
@@ -166,8 +167,7 @@ public class Squeak extends Message {
         // scriptSig = new Script(scriptSigBytes);
 
         // Get the data key.
-        vchDataKey = new VCH_DATA_KEY(params, payload, cursor, this, serializer, UNKNOWN_LENGTH, null);
-        cursor += vchDataKey.getMessageSize();
+        vchDataKey = readBytes(DATA_KEY_SIZE);
 
         contentBytesValid = serializer.isParseRetainMode();
     }
@@ -347,7 +347,7 @@ public class Squeak extends Message {
     /**
      * Set the data key.
      */
-    public void setDataKey(VCH_DATA_KEY dataKey) throws ScriptException {
+    public void setDataKey(byte[] dataKey) throws ScriptException {
         vchDataKey = dataKey;
     }
 
@@ -358,12 +358,13 @@ public class Squeak extends Message {
         vchDataKey = null;
     }
 
-    public VCH_DATA_KEY getDataKey() {
+    public byte[] getDataKey() {
         return vchDataKey;
     }
 
     public byte[] getDecryptedContent() {
-        VCH_DATA_KEY dataKey = getDataKey();
+        byte[] dataKey = getDataKey();
+        // TODO: implement
         return null;
     }
 
@@ -402,11 +403,11 @@ public class Squeak extends Message {
      */
     public void verifyContent() throws VerificationException {
         // Content length check
-        if (encContent.getBytes().length != EncContent.ENC_CONTENT_LENGTH)
+        if (encContent.length != ENC_CONTENT_SIZE)
             throw new VerificationException("verifyContent() : encContent length does not match the required length");
 
         // Content hash check
-        Sha256Hash encContentHash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(encContent.getBytes()));
+        Sha256Hash encContentHash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(encContent));
         if (!encContentHash.equals(hashEncContent))
             throw new VerificationException("verifyContent() : hashEncContent does not match hash of encContent");
 
