@@ -31,7 +31,7 @@ public class Squeak extends Message {
     /** Height of the first block */
     public static final int BLOCK_HEIGHT_GENESIS = 0;
 
-    public static final long BLOCK_VERSION_ALPHA = 1;
+    public static final long SQUEAK_VERSION_ALPHA = 1;
 
     // Fields defined as part of the protocol format.
     private long version;
@@ -100,6 +100,29 @@ public class Squeak extends Message {
         super(params, payloadBytes, offset, serializer, length);
     }
 
+    public Squeak(NetworkParameters params, Sha256Hash hashEncContent, Sha256Hash hashReplySqk, Sha256Hash hashBlock, long nBlockHeight, byte[] scriptPubKeyBytes, Sha256Hash hashDataKey, byte[] vchIv, long nTime, long nNonce, byte[] encContent, byte[] vchDataKey)
+            throws ProtocolException {
+        super(params);
+        // Set up a few basic things. We are not complete after this though.
+        this.version = SQUEAK_VERSION_ALPHA;
+
+        this.hashEncContent = hashEncContent;
+        this.hashReplySqk = hashReplySqk;
+        this.hashBlock = hashBlock;
+        this.nBlockHeight = nBlockHeight;
+        this.scriptPubKeyBytes = scriptPubKeyBytes;
+        this.hashDataKey = hashDataKey;
+        this.vchIv = vchIv;
+        this.nTime = nTime;
+        this.nNonce = nNonce;
+        headerBytesValid = serializer.isParseRetainMode();
+
+        // content
+        parseContent(offset + HEADER_SIZE);
+
+
+        length = HEADER_SIZE;
+    }
 
     /** Special case constructor, used for the genesis node, cloneAsHeader and unit tests. */
     public Squeak(NetworkParameters params, long setVersion)
@@ -196,7 +219,7 @@ public class Squeak extends Message {
 
     /** Returns a copy of the squeak, but without any content. */
     public Squeak cloneAsHeader() {
-        Squeak squeak = new Squeak(params, BLOCK_VERSION_ALPHA);
+        Squeak squeak = new Squeak(params, SQUEAK_VERSION_ALPHA);
         copySqueakHeaderTo(squeak);
         return squeak;
     }
@@ -341,7 +364,7 @@ public class Squeak extends Message {
     /**
      * Set the sig script.
      */
-    public void setScriptSig(SqueakScript script) throws ScriptException {
+    public void setScriptSig(Script script) throws ScriptException {
         scriptSig = null;
         scriptSigBytes = script.getProgram();
     }
@@ -457,7 +480,7 @@ public class Squeak extends Message {
             throw new VerificationException("verifyContent() : invalid data key for the given squeak");
     }
 
-    private Sha256Hash hashDataKey(byte[] dataKey) throws Exception{
+    private static Sha256Hash hashDataKey(byte[] dataKey) throws Exception{
         return Sha256Hash.wrapReversed(Sha256Hash.hash(dataKey));
     }
 
@@ -482,14 +505,42 @@ public class Squeak extends Message {
      * @param replyTo
      * @return
      */
-    public static Squeak makeSqueak(ECKey signingKey, byte[] content, int blockHeight, int timestamp, Sha256Hash replyTo) {
+    public static Squeak makeSqueak(NetworkParameters params, ECKey signingKey, byte[] content, int blockHeight, Sha256Hash blockHash, long timestamp, Sha256Hash replyTo) throws Exception {
         byte[] dataKey = Encryption.generateDataKey();
         byte[] iv = Encryption.generateIV();
+        byte[] encContent = Encryption.encryptContent(dataKey, iv, content);
+        Sha256Hash dataKeyHash = hashDataKey(dataKey);
         long nonce = Encryption.generateNonce();
-        byte[] verifyingKey = signingKey.getPubKey();
-        return null;
+        byte[] pubkeyScriptBytes = signingKey.getPubKey();
+        Squeak squeak = new Squeak(
+                params,
+                Sha256Hash.wrapReversed(Sha256Hash.hashTwice(encContent)),
+                replyTo,
+                blockHash,
+                blockHeight,
+                pubkeyScriptBytes,
+                dataKeyHash,
+                iv,
+                timestamp,
+                nonce,
+                encContent,
+                dataKey
+        );
+        Script sigScript = squeak.signSqueak(signingKey, pubkeyScriptBytes);
+        squeak.setScriptSig(sigScript);
+        return squeak;
     }
 
+    /**
+     * Sign the squeak and return the sig script.
+     * @param signingKey
+     * @return
+     */
+    public Script signSqueak(ECKey signingKey, byte[] scriptPubKeyBytes) {
+        Sha256Hash squeakHash = getHash();
+        ECKey.ECDSASignature signature = signingKey.sign(squeakHash);
+        return Signing.makeSigScript(signature, scriptPubKeyBytes);
+    }
 
     /**
      * Returns a multi-line string containing a description of the contents of
