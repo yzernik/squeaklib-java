@@ -1,4 +1,4 @@
-package io.github.yzernik.core;
+package io.github.yzernik.squeaklib.core;
 
 import org.bitcoinj.core.BitcoinSerializer;
 import org.bitcoinj.core.Block;

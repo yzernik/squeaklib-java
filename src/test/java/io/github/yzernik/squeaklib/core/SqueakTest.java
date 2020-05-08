@@ -1,4 +1,4 @@
-package io.github.yzernik.core;
+package io.github.yzernik.squeaklib.core;
 
         import com.google.common.io.ByteStreams;
 
