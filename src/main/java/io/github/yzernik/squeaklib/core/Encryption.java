@@ -6,6 +6,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.ByteBuffer;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -15,6 +16,7 @@ public class Encryption {
 
     private static int DATA_KEY_LENGTH = 32;
     private static int CIPHER_BLOCK_LENGTH = 16;
+    private static int NONCE_LENGTH = 4;
 
 
     public static Cipher createDataCipher() throws NoSuchPaddingException, NoSuchAlgorithmException {
@@ -53,6 +55,14 @@ public class Encryption {
         byte bytes[] = new byte[CIPHER_BLOCK_LENGTH];
         random.nextBytes(bytes);
         return bytes;
+    }
+
+
+    public static long generateNonce() {
+        SecureRandom random = new SecureRandom();
+        byte bytes[] = new byte[NONCE_LENGTH];
+        random.nextBytes(bytes);
+        return ByteBuffer.wrap(bytes).getLong();
     }
 
 }

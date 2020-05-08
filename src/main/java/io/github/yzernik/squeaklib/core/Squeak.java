@@ -7,16 +7,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.EnumSet;
 
 import static org.bitcoinj.core.Utils.HEX;
@@ -472,6 +466,28 @@ public class Squeak extends Message {
         byte[] iv = getVchIv();
         byte[] cipherText = getEncContent();
         return Encryption.decryptContent(dataKey, iv, cipherText);
+    }
+
+    public String getDecryptedContentStr() throws Exception {
+        return new String(getDecryptedContent()).trim();
+    }
+
+    /**
+     * Make a new squeak.
+     *
+     * @param signingKey
+     * @param content
+     * @param blockHeight
+     * @param timestamp
+     * @param replyTo
+     * @return
+     */
+    public static Squeak makeSqueak(ECKey signingKey, byte[] content, int blockHeight, int timestamp, Sha256Hash replyTo) {
+        byte[] dataKey = Encryption.generateDataKey();
+        byte[] iv = Encryption.generateIV();
+        long nonce = Encryption.generateNonce();
+        byte[] verifyingKey = signingKey.getPubKey();
+        return null;
     }
 
 
