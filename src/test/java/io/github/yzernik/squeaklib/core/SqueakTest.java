@@ -22,6 +22,7 @@ public class SqueakTest {
     private byte[] exampleSqueakBytes;
     private Squeak exampleSqueak;
     private Squeak exampleSqueakBadSig;
+    private Squeak exampleSqueakBadDataKey;
 
     @Before
     public void setUp() throws Exception {
@@ -43,6 +44,15 @@ public class SqueakTest {
         badScriptSigBytes[10] = (byte) 'x';
         SqueakScript badScriptSig = new SqueakScript(badScriptSigBytes);
         exampleSqueakBadSig.setScriptSig(badScriptSig);
+    }
+
+    @Before
+    public void setUpBadDataKey() throws Exception {
+        new Context(TESTNET);
+        NetworkParameters networkParameters = TESTNET;
+        SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, true);
+        exampleSqueakBadDataKey = squeakSerializer.makeSqueak(exampleSqueakBytes);
+        exampleSqueakBadDataKey.clearDataKey();
     }
 
     @Test
@@ -94,6 +104,11 @@ public class SqueakTest {
         exampleSqueakBadSig.verify();
     }
 
+    @Test(expected = VerificationException.class)
+    public void testVerifyBadDataKey() throws Exception {
+        exampleSqueakBadDataKey.verify();
+    }
+    
 /*
 
     @Test

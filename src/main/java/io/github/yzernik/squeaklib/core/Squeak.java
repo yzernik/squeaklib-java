@@ -371,13 +371,25 @@ public class Squeak extends Message {
     }
 
     /**
-     * Verifies both the header and that the transactions hash to the merkle root.
+     * Verifies both the header and that the content hashes correctly.
      *
      * @throws VerificationException if there was an error verifying the block.
      */
     public void verify() throws VerificationException {
+        verify(false);
+    }
+
+    /**
+     * Verifies both the header and that the content hashes correctly.
+     *
+     * @param skipDecryptionCheck Don't check if the data key is valid or present.
+     * @throws VerificationException if there was an error verifying the block.
+     */
+    public void verify(boolean skipDecryptionCheck) throws VerificationException {
         verifyHeader();
         verifyContent();
+        if (!skipDecryptionCheck)
+            verifyDataKey();
     }
 
     /**
@@ -399,9 +411,9 @@ public class Squeak extends Message {
     }
 
     /**
-     * Checks the block contents
+     * Checks the squeak contents
      *
-     * @throws VerificationException if there was an error verifying the block.
+     * @throws VerificationException if there was an error verifying the squeak.
      */
     public void verifyContent() throws VerificationException {
         // Content length check
@@ -425,21 +437,25 @@ public class Squeak extends Message {
             System.err.println(e);
             throw new VerificationException("verifyContent() : invalid signature for the given squeak");
         }
-
-        // Now we need to check that the body of the block actually matches the headers. The network won't generate
-        // an invalid block, but if we didn't validate this then an untrusted man-in-the-middle could obtain the next
-        // valid block from the network and simply replace the transactions in it with their own fictional
-        // transactions that reference spent or non-existent inputs.
-/*        if (transactions.isEmpty())
-            throw new VerificationException("Block had no transactions");
-        if (this.getOptimalEncodingMessageSize() > MAX_BLOCK_SIZE)
-            throw new VerificationException("Block larger than MAX_BLOCK_SIZE");
-        checkTransactions(height, flags);
-        checkMerkleRoot();
-        checkSigOps();
-        for (Transaction transaction : transactions)
-            transaction.verify();*/
     }
+
+
+    /**
+     * Checks the data key
+     *
+     * @throws VerificationException if there was an error verifying the data key.
+     */
+    public void verifyDataKey() throws VerificationException {
+        byte[] dataKey = getDataKey();
+        Sha256Hash dataKeyHash = getHashDataKey();
+
+        if (dataKey == null)
+            throw new VerificationException("verifyContent() : invalid data key for the given squeak");
+
+        if (dataKeyHash.equals(Sha256Hash.hash(dataKey)))
+            throw new VerificationException("verifyContent() : invalid data key for the given squeak");
+    }
+
 
 
     /**
