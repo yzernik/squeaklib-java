@@ -434,7 +434,6 @@ public class Squeak extends Message {
             // sigScript.correctlySpends(tx, 0, pubkeyScript, EnumSet.noneOf(Script.VerifyFlag.class));
             sigScript.correctlyAuthors(params, squeakHash, pubkeyScript, EnumSet.noneOf(Script.VerifyFlag.class));
         } catch (ScriptException e) {
-            System.err.println(e);
             throw new VerificationException("verifyContent() : invalid signature for the given squeak");
         }
     }
@@ -452,7 +451,7 @@ public class Squeak extends Message {
         if (dataKey == null)
             throw new VerificationException("verifyContent() : invalid data key for the given squeak");
 
-        if (dataKeyHash.equals(Sha256Hash.hash(dataKey)))
+        if (!dataKeyHash.equals(Sha256Hash.wrapReversed(Sha256Hash.hash(dataKey))))
             throw new VerificationException("verifyContent() : invalid data key for the given squeak");
     }
 

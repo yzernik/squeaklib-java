@@ -22,6 +22,7 @@ public class SqueakTest {
     private byte[] exampleSqueakBytes;
     private Squeak exampleSqueak;
     private Squeak exampleSqueakBadSig;
+    private Squeak exampleSqueakMissingDataKey;
     private Squeak exampleSqueakBadDataKey;
 
     @Before
@@ -30,29 +31,27 @@ public class SqueakTest {
         // One with some of transactions in, so a good test of the merkle tree hashing.
         exampleSqueakBytes = ByteStreams.toByteArray(SqueakTest.class.getResourceAsStream("squeak_example.dat"));
         NetworkParameters networkParameters = TESTNET;
+
+        // Set up squeak
         SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, true);
         exampleSqueak = squeakSerializer.makeSqueak(exampleSqueakBytes);
-    }
 
-    @Before
-    public void setUpBadSignature() throws Exception {
-        new Context(TESTNET);
-        NetworkParameters networkParameters = TESTNET;
-        SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, true);
+        // Set up squeak with bad signature
         exampleSqueakBadSig = squeakSerializer.makeSqueak(exampleSqueakBytes);
         byte[] badScriptSigBytes = exampleSqueakBadSig.getScriptSig().getProgram();
         badScriptSigBytes[10] = (byte) 'x';
         SqueakScript badScriptSig = new SqueakScript(badScriptSigBytes);
         exampleSqueakBadSig.setScriptSig(badScriptSig);
-    }
 
-    @Before
-    public void setUpBadDataKey() throws Exception {
-        new Context(TESTNET);
-        NetworkParameters networkParameters = TESTNET;
-        SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, true);
+        // Set up squeak with bad data key
+        byte[] randomDataKey = Encryption.generateDataKey();
         exampleSqueakBadDataKey = squeakSerializer.makeSqueak(exampleSqueakBytes);
-        exampleSqueakBadDataKey.clearDataKey();
+        exampleSqueakBadDataKey.setDataKey(randomDataKey);
+
+        // Set up squeak with missing data key
+        exampleSqueakMissingDataKey = squeakSerializer.makeSqueak(exampleSqueakBytes);
+        exampleSqueakMissingDataKey.clearDataKey();
+
     }
 
     @Test
@@ -104,11 +103,18 @@ public class SqueakTest {
         exampleSqueakBadSig.verify();
     }
 
+/*
     @Test(expected = VerificationException.class)
     public void testVerifyBadDataKey() throws Exception {
         exampleSqueakBadDataKey.verify();
     }
-    
+
+    @Test(expected = VerificationException.class)
+    public void testVerifyMissingDataKey() throws Exception {
+        exampleSqueakMissingDataKey.verify();
+    }
+*/
+
 /*
 
     @Test
