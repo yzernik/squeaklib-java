@@ -1,4 +1,4 @@
-package io.github.yzernik.core;
+package io.github.yzernik.squeaklib.core;
 
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
