@@ -13,7 +13,7 @@ import java.security.NoSuchAlgorithmException;
 public class Encryption {
 
     private static int DATA_KEY_LENGTH = VCH_DATA_KEY.DATA_KEY_LENGTH;
-    private static int CIPHER_BLOCK_LENGTH = VCH_IV.CIPHER_BLOCK_LENGTH;
+    private static int CIPHER_BLOCK_LENGTH = 16;
 
 
     public static Cipher createDataCipher() throws NoSuchPaddingException, NoSuchAlgorithmException {
@@ -29,15 +29,15 @@ public class Encryption {
         return CIPHER_BLOCK_LENGTH * 8;
     }
 
-    public static byte[] encryptContent(VCH_DATA_KEY dataKey, VCH_IV iv, byte[] content) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException {
+    public static byte[] encryptContent(VCH_DATA_KEY dataKey, byte[] iv, byte[] content) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException {
         Cipher encryptor = createDataCipher();
-        encryptor.init(Cipher.ENCRYPT_MODE, getSecretKey(dataKey), new IvParameterSpec(iv.getBytes()));
+        encryptor.init(Cipher.ENCRYPT_MODE, getSecretKey(dataKey), new IvParameterSpec(iv));
         return encryptor.doFinal(content);
     }
 
-    public static byte[] decryptContent(VCH_DATA_KEY dataKey, VCH_IV iv, byte[] cipher) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException {
+    public static byte[] decryptContent(VCH_DATA_KEY dataKey, byte[] iv, byte[] cipher) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException {
         Cipher decryptor = createDataCipher();
-        decryptor.init(Cipher.DECRYPT_MODE, getSecretKey(dataKey), new IvParameterSpec(iv.getBytes()));
+        decryptor.init(Cipher.DECRYPT_MODE, getSecretKey(dataKey), new IvParameterSpec(iv));
         return decryptor.doFinal(cipher);
     }
 

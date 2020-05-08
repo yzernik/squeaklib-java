@@ -20,6 +20,7 @@ public class Squeak extends Message {
 
     /** How many bytes are required to represent a block header WITHOUT the trailing 00 length byte. */
     public static final int HEADER_SIZE = 186;
+    public static final int IV_SIZE = 16;
 
     /** Value to use if the block height is unknown */
     public static final int BLOCK_HEIGHT_UNKNOWN = -1;
@@ -47,7 +48,7 @@ public class Squeak extends Message {
     private int scriptLen;
 
     private Sha256Hash hashDataKey;
-    private VCH_IV vchIv;
+    private byte[] vchIv;
 
     private long nTime;
     private long nNonce;
@@ -124,8 +125,7 @@ public class Squeak extends Message {
         hashDataKey = readHash();
 
         // Get the vch_iv
-        vchIv = new VCH_IV(params, payload, cursor, this, serializer, UNKNOWN_LENGTH, null);
-        cursor += vchIv.getMessageSize();
+        vchIv = readBytes(IV_SIZE);
 
         nTime = readUint32();
         nNonce = readUint32();
@@ -250,7 +250,7 @@ public class Squeak extends Message {
         stream.write(new VarInt(scriptLen).encode());
         stream.write(scriptPubKeyBytes);
         stream.write(hashDataKey.getReversedBytes());
-        vchIv.bitcoinSerializeToStream(stream);
+        stream.write(vchIv);
         Utils.uint32ToByteStreamLE(nTime, stream);
         Utils.uint32ToByteStreamLE(nNonce, stream);
     }
@@ -266,7 +266,7 @@ public class Squeak extends Message {
         stream.write(new VarInt(scriptLen).encode());
         stream.write(scriptPubKeyBytes);
         stream.write(hashDataKey.getReversedBytes());
-        vchIv.bitcoinSerializeToStream(stream);
+        stream.write(vchIv);
         Utils.uint32ToByteStreamLE(nTime, stream);
         Utils.uint32ToByteStreamLE(nNonce, stream);
     }
@@ -308,7 +308,7 @@ public class Squeak extends Message {
         return hashDataKey;
     }
 
-    public VCH_IV getVchIv() throws ScriptException {
+    public byte[] getVchIv() throws ScriptException {
         return vchIv;
     }
 
