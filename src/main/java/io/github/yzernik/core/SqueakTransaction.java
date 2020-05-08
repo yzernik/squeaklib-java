@@ -14,7 +14,7 @@ public class SqueakTransaction extends Transaction {
 
     @Override
     public Sha256Hash hashForSignature(int inputIndex, byte[] connectedScript, byte sigHashType) {
-        return hash;
+        return Sha256Hash.wrapReversed(hash.getBytes());
     }
 
 }

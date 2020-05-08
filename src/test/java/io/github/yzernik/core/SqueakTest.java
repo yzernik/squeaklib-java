@@ -72,7 +72,6 @@ public class SqueakTest {
 
     @Test
     public void testVerify() throws Exception {
-        System.out.println(exampleSqueak);
         exampleSqueak.verify();
     }
 
