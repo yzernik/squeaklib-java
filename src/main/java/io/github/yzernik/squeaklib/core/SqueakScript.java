@@ -4,13 +4,13 @@ import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.Utils;
-import org.bitcoinj.script.*;
+import org.bitcoinj.script.Script;
+import org.bitcoinj.script.ScriptError;
+import org.bitcoinj.script.ScriptException;
 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
-import static org.bitcoinj.script.ScriptOpCodes.OP_16;
 
 
 public class SqueakScript extends Script {
@@ -59,38 +59,6 @@ public class SqueakScript extends Script {
         if (!castToBool(stack.pollLast()))
             throw new ScriptException(ScriptError.SCRIPT_ERR_EVAL_FALSE,
                     "Script resulted in a non-true stack: " + Utils.toString(stackCopy));
-
-        // P2SH is pay to script hash. It means that the scriptPubKey has a special form which is a valid
-        // program but it has "useless" form that if evaluated as a normal program always returns true.
-        // Instead, miners recognize it as special based on its template - it provides a hash of the real scriptPubKey
-        // and that must be provided by the input. The goal of this bizarre arrangement is twofold:
-        //
-        // (1) You can sum up a large, complex script (like a CHECKMULTISIG script) with an address that's the same
-        //     size as a regular address. This means it doesn't overload scannable QR codes/NFC tags or become
-        //     un-wieldy to copy/paste.
-        // (2) It allows the working set to be smaller: nodes perform best when they can store as many unspent outputs
-        //     in RAM as possible, so if the outputs are made smaller and the inputs get bigger, then it's better for
-        //     overall scalability and performance.
-
-        // TODO: Check if we can take out enforceP2SH if there's a checkpoint at the enforcement block.
-        if (verifyFlags.contains(VerifyFlag.P2SH) && ScriptPattern.isP2SH(scriptPubKey)) {
-            for (ScriptChunk chunk : chunks)
-                if (chunk.isOpCode() && chunk.opcode > OP_16)
-                    throw new ScriptException(ScriptError.SCRIPT_ERR_SIG_PUSHONLY, "Attempted to spend a P2SH scriptPubKey with a script that contained script ops");
-
-            byte[] scriptPubKeyBytes = p2shStack.pollLast();
-            Script scriptPubKeyP2SH = new Script(scriptPubKeyBytes);
-
-            executeScript(tx, 0, scriptPubKeyP2SH, p2shStack, verifyFlags);
-
-            if (p2shStack.size() == 0)
-                throw new ScriptException(ScriptError.SCRIPT_ERR_EVAL_FALSE, "P2SH stack empty at end of script execution.");
-
-            List<byte[]> p2shStackCopy = new LinkedList<>(p2shStack);
-            if (!castToBool(p2shStack.pollLast()))
-                throw new ScriptException(ScriptError.SCRIPT_ERR_EVAL_FALSE,
-                        "P2SH script execution resulted in a non-true stack: " + Utils.toString(p2shStackCopy));
-        }
     }
 
     private static boolean castToBool(byte[] data) {
