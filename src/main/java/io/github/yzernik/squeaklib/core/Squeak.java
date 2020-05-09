@@ -226,7 +226,6 @@ public class Squeak extends Message {
     public Squeak cloneAsHeader() {
         Squeak squeak = new Squeak(params, SQUEAK_VERSION_ALPHA);
         copySqueakHeaderTo(squeak);
-        System.out.println(squeak);
         return squeak;
     }
 
@@ -237,9 +236,8 @@ public class Squeak extends Message {
         squeak.hashReplySqk = hashReplySqk;
         squeak.hashBlock = hashBlock;
         squeak.nBlockHeight = nBlockHeight;
-        squeak.scriptPubKey = scriptPubKey;
-        squeak.scriptSigBytes = scriptPubKeyBytes;
-        squeak.hashEncContent = hashEncContent;
+        squeak.scriptPubKeyBytes = scriptPubKeyBytes;
+        squeak.scriptSigBytes = scriptSigBytes;
         squeak.hashDataKey = hashDataKey;
         squeak.vchIv = vchIv;
         squeak.version = version;
@@ -247,7 +245,6 @@ public class Squeak extends Message {
         squeak.encContent = null;
         squeak.scriptSig = null;
         squeak.vchDataKey = null;
-        squeak.hash = getHash();
     }
 
     /**
@@ -299,6 +296,17 @@ public class Squeak extends Message {
         stream.write(vchIv);
         Utils.uint32ToByteStreamLE(nTime, stream);
         Utils.uint32ToByteStreamLE(nNonce, stream);
+    }
+
+    private void writeContent(OutputStream stream) throws IOException {
+        // TODO
+    }
+
+    @Override
+    protected void bitcoinSerializeToStream(OutputStream stream) throws IOException {
+        writeHeader(stream);
+        // We may only have enough data to write the header.
+        writeContent(stream);
     }
 
     public long getVersion() {
@@ -603,5 +611,16 @@ public class Squeak extends Message {
         return s.toString();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        return getHash().equals(((Squeak)o).getHash());
+    }
+
+    @Override
+    public int hashCode() {
+        return getHash().hashCode();
+    }
 
 }
