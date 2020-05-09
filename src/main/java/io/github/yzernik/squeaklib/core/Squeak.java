@@ -503,7 +503,7 @@ public class Squeak extends Message {
     }
 
     public String getDecryptedContentStr() throws Exception {
-        return new String(getDecryptedContent()).trim();
+        return Encoding.decodeMessage(getDecryptedContent());
     }
 
     /**
@@ -553,27 +553,6 @@ public class Squeak extends Message {
                 blockHash,
                 timestamp,
                 replyTo);
-    }
-
-    private static String padString(String s) {
-        if (s.length() >= CONTENT_SIZE) {
-            return s;
-        }
-        StringBuilder sb = new StringBuilder(s);
-        while (sb.length() < CONTENT_SIZE - s.length()) {
-            sb.append('0');
-        }
-        return sb.toString();
-    }
-
-    private static byte[] encodeContent(String s) {
-        String paddedStr = padString(s);
-        return paddedStr.getBytes(Charset.forName("utf-8"));
-    }
-
-    private static String decodeContent(byte[] bytes) {
-        String paddedStr = new String(bytes, Charset.forName("utf-8"));
-        return paddedStr.trim();
     }
 
     /**
