@@ -20,18 +20,13 @@ public class Encryption {
     public static final int CONTENT_LENGTH = 1120;
     public static final int CIPHERTEXT_LENGTH = 1136;
 
-
-
+    
     public static Cipher createDataCipher() throws NoSuchPaddingException, NoSuchAlgorithmException {
         return Cipher.getInstance("AES/CBC/PKCS5PADDING");
     }
 
     private static SecretKeySpec getSecretKey(byte[] dataKey) {
         return new SecretKeySpec(dataKey,"AES");
-    }
-
-    private static int blockSizeBits() {
-        return CIPHER_BLOCK_LENGTH * 8;
     }
 
     public static byte[] encryptContent(byte[] dataKey, byte[] iv, byte[] content) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException {
