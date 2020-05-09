@@ -159,4 +159,13 @@ public class SqueakTest {
         assertEquals(reparsed, squeakHeader);
     }
 
+
+    @Test
+    public void testSerializeDeserialize() throws Exception {
+        SqueakSerializer squeakSerializer = new SqueakSerializer(MAINNET, true);
+        Squeak reparsed = squeakSerializer.makeSqueak(exampleSqueak.bitcoinSerialize());
+
+        assertEquals(reparsed, exampleSqueak);
+    }
+
 }
