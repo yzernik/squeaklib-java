@@ -236,18 +236,15 @@ public class Squeak extends Message {
         squeak.hashReplySqk = hashReplySqk;
         squeak.hashBlock = hashBlock;
         squeak.nBlockHeight = nBlockHeight;
-        squeak.scriptPubKey = scriptPubKey;
-        squeak.scriptSigBytes = scriptPubKeyBytes;
-        squeak.hashEncContent = hashEncContent;
+        squeak.scriptPubKeyBytes = scriptPubKeyBytes;
+        squeak.scriptSigBytes = scriptSigBytes;
+        squeak.hashDataKey = hashDataKey;
+        squeak.vchIv = vchIv;
         squeak.version = version;
         squeak.nTime = nTime;
         squeak.encContent = null;
         squeak.scriptSig = null;
-        squeak.scriptSigBytes = null;
         squeak.vchDataKey = null;
-
-
-        squeak.hash = getHash();
     }
 
     /**
@@ -299,6 +296,17 @@ public class Squeak extends Message {
         stream.write(vchIv);
         Utils.uint32ToByteStreamLE(nTime, stream);
         Utils.uint32ToByteStreamLE(nNonce, stream);
+    }
+
+    private void writeContent(OutputStream stream) throws IOException {
+        // TODO
+    }
+
+    @Override
+    protected void bitcoinSerializeToStream(OutputStream stream) throws IOException {
+        writeHeader(stream);
+        // We may only have enough data to write the header.
+        writeContent(stream);
     }
 
     public long getVersion() {
@@ -600,10 +608,19 @@ public class Squeak extends Message {
         s.append("   vchIv: ").append(HEX.encode(getVchIv())).append("\n");
         s.append("   time: ").append(nTime).append("\n");
         s.append("   nonce: ").append(getNonce()).append("\n");
-        s.append("   script sig: ").append(getScriptSig()).append("\n");
-        s.append("   vchDataKey: ").append(HEX.encode(getDataKey())).append("\n");
         return s.toString();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        return getHash().equals(((Squeak)o).getHash());
+    }
+
+    @Override
+    public int hashCode() {
+        return getHash().hashCode();
+    }
 
 }
