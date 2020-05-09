@@ -28,6 +28,7 @@ public class SqueakTest {
     private Squeak exampleSqueakBadSig;
     private Squeak exampleSqueakMissingDataKey;
     private Squeak exampleSqueakBadDataKey;
+    private Squeak exampleSqueakBadEncContent;
 
     @Before
     public void setUp() throws Exception {
@@ -55,6 +56,11 @@ public class SqueakTest {
         // Set up squeak with missing data key
         exampleSqueakMissingDataKey = squeakSerializer.makeSqueak(exampleSqueakBytes);
         exampleSqueakMissingDataKey.clearDataKey();
+
+        // Set up squeak with bad enc content
+        byte[] randomContent = TestUtils.generateRandomContent();
+        exampleSqueakBadEncContent = squeakSerializer.makeSqueak(exampleSqueakBytes);
+        exampleSqueakBadEncContent.setEncContent(randomContent);
 
     }
 
@@ -107,14 +113,49 @@ public class SqueakTest {
         exampleSqueakBadSig.verify();
     }
 
+    @Test
+    public void testVerifyHeaderBadSignature() throws Exception {
+        exampleSqueakBadSig.verifyHeader();
+    }
+
     @Test(expected = VerificationException.class)
     public void testVerifyBadDataKey() throws Exception {
         exampleSqueakBadDataKey.verify();
     }
 
+    @Test
+    public void testVerifyHeaderBadDataKey() throws Exception {
+        exampleSqueakBadDataKey.verifyHeader();
+    }
+
+    @Test
+    public void testVerifyBadDataKeySkipDecryptCheck() throws Exception {
+        exampleSqueakBadDataKey.verify(true);
+    }
+
     @Test(expected = VerificationException.class)
     public void testVerifyMissingDataKey() throws Exception {
         exampleSqueakMissingDataKey.verify();
+    }
+
+    @Test
+    public void testVerifyHeaderMissingDataKey() throws Exception {
+        exampleSqueakMissingDataKey.verifyHeader();
+    }
+
+    @Test
+    public void testVerifyMissingDataKeySkipDecryptCheck() throws Exception {
+        exampleSqueakMissingDataKey.verify(true);
+    }
+
+    @Test(expected = VerificationException.class)
+    public void testVerifyBadEncContent() throws Exception {
+        exampleSqueakBadEncContent.verify();
+    }
+
+    @Test
+    public void testVerifyHeaderBadEncContent() throws Exception {
+        exampleSqueakBadEncContent.verifyHeader();
     }
 
     @Test
@@ -157,6 +198,7 @@ public class SqueakTest {
         Squeak reparsed = squeakSerializer.makeSqueak(squeakHeader.bitcoinSerialize());
 
         assertEquals(reparsed, squeakHeader);
+        reparsed.verifyHeader();
     }
 
 
