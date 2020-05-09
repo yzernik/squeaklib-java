@@ -15,7 +15,14 @@ import java.util.EnumSet;
 
 import static org.bitcoinj.core.Utils.HEX;
 
-
+/**
+ * <p>A squeak is a signed, encrypted message from a user. It contains an encrypted
+ * message payload that can only be decrypted if the decryption key is also present.
+ * The author can be verified by checking the public key and signature,
+ * and the creation time can be verified by checking the block hash.</p>
+ *
+ * <p>Instances of this class are not safe for use by multiple threads.</p>
+ */
 public class Squeak extends Message {
 
     private static final Logger log = LoggerFactory.getLogger(Squeak.class);
@@ -554,6 +561,8 @@ public class Squeak extends Message {
      * @return
      */
     public Script signSqueak(ECKey signingKey, byte[] pubKeyBytes) {
+        // The hash needs to be reversed because it is stored as
+        // a big-endian.
         Sha256Hash squeakHash = Sha256Hash.wrap(getHash().getReversedBytes());
         ECKey.ECDSASignature signature = signingKey.sign(squeakHash);
         return Signing.makeSigScript(signature, pubKeyBytes);
