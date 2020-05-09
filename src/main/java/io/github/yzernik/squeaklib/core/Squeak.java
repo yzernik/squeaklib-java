@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
-import java.nio.charset.Charset;
 import java.util.EnumSet;
 
 import static org.bitcoinj.core.Utils.HEX;
@@ -47,11 +46,6 @@ public class Squeak extends Message {
     private byte[] scriptPubKeyBytes;
     // The script bytes are parsed and turned into a Script on demand.
     private Script scriptPubKey;
-    // These fields are not Bitcoin serialized. They are used for tracking purposes in our wallet
-    // only. If set to true, this output is counted towards our balance. If false and spentBy is null the tx output
-    // was owned by us and was sent to somebody else. If false and spentBy is set it means this output was owned by
-    // us and used in one of our own transactions (eg, because it is a change output).
-    private int scriptLen;
 
     private Sha256Hash hashDataKey;
     private byte[] vchIv;
@@ -150,7 +144,7 @@ public class Squeak extends Message {
         nBlockHeight = readUint32();
 
         // parse the script pubkey
-        scriptLen = (int) readVarInt();
+        int scriptLen = (int) readVarInt();
         length = cursor - offset + scriptLen;
         scriptPubKeyBytes = readBytes(scriptLen);
 
@@ -274,7 +268,7 @@ public class Squeak extends Message {
         stream.write(hashReplySqk.getReversedBytes());
         stream.write(hashBlock.getReversedBytes());
         Utils.uint32ToByteStreamLE(nBlockHeight, stream);
-        stream.write(new VarInt(scriptLen).encode());
+        stream.write(new VarInt(scriptPubKeyBytes.length).encode());
         stream.write(scriptPubKeyBytes);
         stream.write(hashDataKey.getReversedBytes());
         stream.write(vchIv);
@@ -290,7 +284,7 @@ public class Squeak extends Message {
         stream.write(hashReplySqk.getReversedBytes());
         stream.write(hashBlock.getReversedBytes());
         Utils.uint32ToByteStreamLE(nBlockHeight, stream);
-        stream.write(new VarInt(scriptLen).encode());
+        stream.write(new VarInt(scriptPubKeyBytes.length).encode());
         stream.write(scriptPubKeyBytes);
         stream.write(hashDataKey.getReversedBytes());
         stream.write(vchIv);
@@ -375,25 +369,32 @@ public class Squeak extends Message {
     }
 
     /**
+     * Set the encrypted content.
+     */
+    public void setEncContent(byte[] encContent) throws ScriptException {
+        this.encContent = encContent;
+    }
+
+    /**
      * Set the sig script.
      */
     public void setScriptSig(Script script) throws ScriptException {
-        scriptSig = null;
-        scriptSigBytes = script.getProgram();
+        this.scriptSig = null;
+        this.scriptSigBytes = script.getProgram();
     }
 
     /**
      * Set the data key.
      */
     public void setDataKey(byte[] dataKey) throws ScriptException {
-        vchDataKey = dataKey;
+        this.vchDataKey = dataKey;
     }
 
     /**
      * Clear the data key.
      */
     public void clearDataKey() throws ScriptException {
-        vchDataKey = null;
+        this.vchDataKey = null;
     }
 
     public byte[] getDataKey() {
