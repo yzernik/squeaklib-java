@@ -514,6 +514,7 @@ public class Squeak extends Message {
         byte[] encContent = Encryption.encryptContent(dataKey, iv, content);
         Sha256Hash dataKeyHash = hashDataKey(dataKey);
         long nonce = Encryption.generateNonce();
+        byte[] pubKeyBytes = signingKey.getPubKey();
         byte[] pubKeyHash = signingKey.getPubKeyHash();
         Script pubKeyScript = Signing.makePubKeyScript(pubKeyHash);
         Squeak squeak = new Squeak(
@@ -530,7 +531,7 @@ public class Squeak extends Message {
                 encContent,
                 dataKey
         );
-        Script sigScript = squeak.signSqueak(signingKey, pubKeyScript.getProgram());
+        Script sigScript = squeak.signSqueak(signingKey, pubKeyBytes);
         squeak.setScriptSig(sigScript);
         return squeak;
     }
@@ -570,12 +571,13 @@ public class Squeak extends Message {
     /**
      * Sign the squeak and return the sig script.
      * @param signingKey
+     * @param pubKeyBytes
      * @return
      */
-    public Script signSqueak(ECKey signingKey, byte[] scriptPubKeyBytes) {
-        Sha256Hash squeakHash = getHash();
+    public Script signSqueak(ECKey signingKey, byte[] pubKeyBytes) {
+        Sha256Hash squeakHash = Sha256Hash.wrap(getHash().getReversedBytes());
         ECKey.ECDSASignature signature = signingKey.sign(squeakHash);
-        return Signing.makeSigScript(signature, scriptPubKeyBytes);
+        return Signing.makeSigScript(signature, pubKeyBytes);
     }
 
     /**

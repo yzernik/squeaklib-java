@@ -18,7 +18,6 @@ public class Signing {
     public static Script makeSigScript(ECKey.ECDSASignature signature, byte[] verifyingKeyBytes) {
         ScriptBuilder scriptBuilder = new ScriptBuilder();
         scriptBuilder.data(signature.encodeToDER());
-        scriptBuilder.addChunk(new ScriptChunk(Transaction.SigHash.ALL.value, null)); // SIGHASH_ALL
         scriptBuilder.data(verifyingKeyBytes);
         return scriptBuilder.build();
     }

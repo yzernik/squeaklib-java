@@ -75,10 +75,6 @@ public class SqueakTest {
         assert(exampleSqueak.getScriptPubKey().getChunks().get(2).isPushData());
         assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(3).opcode, ScriptOpCodes.OP_EQUALVERIFY);
         assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(4).opcode, ScriptOpCodes.OP_CHECKSIG);
-
-        System.out.println(exampleSqueak.getScriptPubKey());
-        System.out.println(HEX.encode(exampleSqueak.getScriptPubKey().getProgram()));
-        System.out.println(exampleSqueak.getScriptPubKey().getProgram().length);
     }
 
     @Test
