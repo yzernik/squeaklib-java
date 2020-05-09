@@ -54,7 +54,6 @@ public class Squeak extends Message {
     private long nNonce;
     // END OF HEADER
 
-
     // TODO: Get rid of all the direct accesses to this field. It's a long-since unnecessary holdover from the Dalvik days.
     /** If null, it means this object holds only the headers. */
     @Nullable
