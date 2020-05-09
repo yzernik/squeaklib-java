@@ -20,17 +20,12 @@ public class Squeak extends Message {
 
     private static final Logger log = LoggerFactory.getLogger(Squeak.class);
 
-    /** How many bytes are required to represent a block header WITHOUT the trailing 00 length byte. */
+    /** How many bytes are required to represent a squeak header WITHOUT the trailing 00 length byte. */
     public static final int HEADER_SIZE = 186;
     public static final int IV_SIZE = 16;
     public static final int DATA_KEY_SIZE = 32;
     public static final int ENC_CONTENT_SIZE = 1136;
     public static final int CONTENT_SIZE = 1120;
-
-    /** Value to use if the block height is unknown */
-    public static final int BLOCK_HEIGHT_UNKNOWN = -1;
-    /** Height of the first block */
-    public static final int BLOCK_HEIGHT_GENESIS = 0;
 
     public static final long SQUEAK_VERSION_ALPHA = 1;
 
@@ -69,7 +64,7 @@ public class Squeak extends Message {
     @Nullable
     byte[] vchDataKey;
 
-    /** Stores the hash of the block. If null, getHash() will recalculate it. */
+    /** Stores the hash of the squeak. If null, getHash() will recalculate it. */
     private Sha256Hash hash;
 
     protected boolean headerBytesValid;
@@ -81,9 +76,9 @@ public class Squeak extends Message {
     protected int optimalEncodingMessageSize;
 
     /**
-     * Construct a block object from the Bitcoin wire format.
+     * Construct a squeak object from the Bitcoin wire format.
      * @param params NetworkParameters object.
-     * @param payloadBytes the payload to extract the block from.
+     * @param payloadBytes the payload to extract the squeak from.
      * @param offset The location of the first payload byte within the array.
      * @param serializer the serializer to use for this message.
      * @param length The length of message if known.  Usually this is provided when deserializing of the wire
@@ -196,17 +191,14 @@ public class Squeak extends Message {
     }
 
     /**
-     * Returns the hash of the block (which for a valid, solved block should be below the target) in the form seen on
-     * the block explorer. If you call this on block 1 in the mainnet chain
-     * you will get "00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048".
+     * Returns the hash of the squeak.
      */
     public String getHashAsString() {
         return getHash().toString();
     }
 
     /**
-     * Returns the hash of the block (which for a valid, solved block should be
-     * below the target). Big endian.
+     * Returns the hash of the squeak. Big endian.
      */
     @Override
     public Sha256Hash getHash() {
@@ -241,7 +233,7 @@ public class Squeak extends Message {
     }
 
     /**
-     * Calculates the block hash by serializing the block and hashing the
+     * Calculates the squeak hash by serializing the squeak and hashing the
      * resulting bytes.
      */
     private Sha256Hash calculateHash() {
@@ -407,7 +399,7 @@ public class Squeak extends Message {
     /**
      * Verifies both the header and that the content hashes correctly.
      *
-     * @throws VerificationException if there was an error verifying the block.
+     * @throws VerificationException if there was an error verifying the squeak.
      */
     public void verify() throws VerificationException {
         verify(false);
@@ -417,7 +409,7 @@ public class Squeak extends Message {
      * Verifies both the header and that the content hashes correctly.
      *
      * @param skipDecryptionCheck Don't check if the data key is valid or present.
-     * @throws VerificationException if there was an error verifying the block.
+     * @throws VerificationException if there was an error verifying the squeak.
      */
     public void verify(boolean skipDecryptionCheck) throws VerificationException {
         verifyHeader();
@@ -569,7 +561,7 @@ public class Squeak extends Message {
 
     /**
      * Returns a multi-line string containing a description of the contents of
-     * the block. Use for debugging purposes only.
+     * the squeak. Use for debugging purposes only.
      */
     @Override
     public String toString() {
