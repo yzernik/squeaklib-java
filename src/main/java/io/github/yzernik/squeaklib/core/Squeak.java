@@ -443,9 +443,6 @@ public class Squeak extends Message {
      */
     public void verifyContent() throws VerificationException {
         // Content length check
-        System.out.println("encContent.length: " + encContent.length);
-        System.out.println("ENC_CONTENT_SIZE: " + ENC_CONTENT_SIZE);
-        System.out.println("encContent: " + HEX.encode(encContent));
         if (encContent.length != ENC_CONTENT_SIZE)
             throw new VerificationException("verifyContent() : encContent length does not match the required length");
 
@@ -519,9 +516,6 @@ public class Squeak extends Message {
         long nonce = Encryption.generateNonce();
         byte[] pubKeyHash = signingKey.getPubKeyHash();
         Script pubKeyScript = Signing.makePubKeyScript(pubKeyHash);
-        System.out.println("pubKeyScript: " + pubKeyScript);
-        System.out.println("pubkeyScriptBytes: " + HEX.encode(pubKeyScript.getProgram()));
-        System.out.println("pubkeyScriptBytes length: " + pubKeyScript.getProgram().length);
         Squeak squeak = new Squeak(
                 params,
                 Sha256Hash.wrapReversed(Sha256Hash.hashTwice(encContent)),
@@ -536,7 +530,6 @@ public class Squeak extends Message {
                 encContent,
                 dataKey
         );
-        System.out.println(squeak);
         Script sigScript = squeak.signSqueak(signingKey, pubKeyScript.getProgram());
         squeak.setScriptSig(sigScript);
         return squeak;
