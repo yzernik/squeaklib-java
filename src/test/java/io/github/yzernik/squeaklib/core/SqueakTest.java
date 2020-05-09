@@ -136,7 +136,6 @@ public class SqueakTest {
     public void testMakeSqueak() throws Exception {
         ECKey signingKey = new ECKey();
         String message = "test message 123";
-
         Squeak squeak = Squeak.makeSqueakFromStr(
                 MAINNET,
                 signingKey,
@@ -147,10 +146,8 @@ public class SqueakTest {
                 Sha256Hash.wrap("0000000000000000000000000000000000000000000000000000000000000000")
         );
 
-        System.out.println(squeak);
-        System.out.println(squeak.getDecryptedContentStr());
-
         squeak.verify();
+        assertEquals(squeak.getDecryptedContentStr(), "test message 123");
     }
 
 /*
