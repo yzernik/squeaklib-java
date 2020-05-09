@@ -226,6 +226,7 @@ public class Squeak extends Message {
     public Squeak cloneAsHeader() {
         Squeak squeak = new Squeak(params, SQUEAK_VERSION_ALPHA);
         copySqueakHeaderTo(squeak);
+        System.out.println(squeak);
         return squeak;
     }
 
@@ -239,13 +240,12 @@ public class Squeak extends Message {
         squeak.scriptPubKey = scriptPubKey;
         squeak.scriptSigBytes = scriptPubKeyBytes;
         squeak.hashEncContent = hashEncContent;
+        squeak.vchIv = vchIv;
         squeak.version = version;
         squeak.nTime = nTime;
         squeak.encContent = null;
         squeak.scriptSig = null;
-        squeak.scriptSigBytes = null;
         squeak.vchDataKey = null;
-
 
         squeak.hash = getHash();
     }
@@ -600,8 +600,6 @@ public class Squeak extends Message {
         s.append("   vchIv: ").append(HEX.encode(getVchIv())).append("\n");
         s.append("   time: ").append(nTime).append("\n");
         s.append("   nonce: ").append(getNonce()).append("\n");
-        s.append("   script sig: ").append(getScriptSig()).append("\n");
-        s.append("   vchDataKey: ").append(HEX.encode(getDataKey())).append("\n");
         return s.toString();
     }
 

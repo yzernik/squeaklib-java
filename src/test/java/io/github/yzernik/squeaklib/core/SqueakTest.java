@@ -150,6 +150,17 @@ public class SqueakTest {
         assertEquals(squeak.getDecryptedContentStr(), "test message 123");
     }
 
+    @Test
+    public void testHeaderParse() throws Exception {
+        System.out.println(exampleSqueak);
+        Squeak squeakHeader = exampleSqueak.cloneAsHeader();
+        System.out.println(squeakHeader);
+
+        SqueakSerializer squeakSerializer = new SqueakSerializer(MAINNET, true);
+        Squeak reparsed = squeakSerializer.makeSqueak(squeakHeader.bitcoinSerialize());
+        assertEquals(reparsed, squeakHeader);
+    }
+
 /*
 
     @Test
@@ -159,14 +170,7 @@ public class SqueakTest {
         assertEquals(reparsed, header);
     }
 
-    @Test
-    public void testBitcoinSerialization() throws Exception {
-        // We have to be able to reserialize everything exactly as we found it for hashing to work. This test also
-        // proves that transaction serialization works, along with all its subobjects like scripts and in/outpoints.
-        //
-        // NB: This tests the bitcoin serialization protocol.
-        assertArrayEquals(block700000Bytes, block700000.bitcoinSerialize());
-    }
+
 
     @Test
     public void testCoinbaseHeightTestnet() throws Exception {
