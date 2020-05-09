@@ -4,7 +4,11 @@ import org.junit.Test;
 
 import javax.crypto.Cipher;
 
+import java.security.SecureRandom;
+
 import static org.junit.Assert.assertEquals;
+
+import static org.bitcoinj.core.Utils.HEX;
 
 public class EncryptionTest {
 
@@ -19,12 +23,18 @@ public class EncryptionTest {
     public void testEncryptDecrypt() throws Exception {
         byte[] dataKey = Encryption.generateDataKey();
         byte[] iv = Encryption.generateIV();
-        String message = "encrypted data";
-        byte[] messageBytes = message.getBytes();
-        byte[] encryptedMsg = Encryption.encryptContent(dataKey, iv, messageBytes);
-        byte[] decryptedMsg = Encryption.decryptContent(dataKey, iv, encryptedMsg);
+        byte[] content = generateRandomContent();
+        byte[] encryptedContent = Encryption.encryptContent(dataKey, iv, content);
+        byte[] decryptedContent = Encryption.decryptContent(dataKey, iv, encryptedContent);
 
-        assertEquals(new String(decryptedMsg), message);
+        assertEquals(HEX.encode(decryptedContent), HEX.encode(content));
+    }
+
+    private byte[] generateRandomContent() {
+        SecureRandom random = new SecureRandom();
+        byte bytes[] = new byte[Encryption.CONTENT_LENGTH];
+        random.nextBytes(bytes);
+        return bytes;
     }
 
 }

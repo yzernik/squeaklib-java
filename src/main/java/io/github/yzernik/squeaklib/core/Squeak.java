@@ -546,7 +546,7 @@ public class Squeak extends Message {
         return makeSqueak(
                 params,
                 signingKey,
-                encodeContent(message),
+                Encoding.encodeMessage(message),
                 blockHeight,
                 blockHash,
                 timestamp,
