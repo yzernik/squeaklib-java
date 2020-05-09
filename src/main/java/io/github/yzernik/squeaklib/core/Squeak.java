@@ -247,7 +247,6 @@ public class Squeak extends Message {
         squeak.encContent = null;
         squeak.scriptSig = null;
         squeak.vchDataKey = null;
-
         squeak.hash = getHash();
     }
 
