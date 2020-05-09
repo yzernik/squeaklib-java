@@ -2,7 +2,9 @@ package io.github.yzernik.squeaklib.core;
 
 import com.google.common.io.ByteStreams;
 import org.bitcoinj.core.Context;
+import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.RegTestParams;
 import org.bitcoinj.params.TestNet3Params;
@@ -73,6 +75,10 @@ public class SqueakTest {
         assert(exampleSqueak.getScriptPubKey().getChunks().get(2).isPushData());
         assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(3).opcode, ScriptOpCodes.OP_EQUALVERIFY);
         assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(4).opcode, ScriptOpCodes.OP_CHECKSIG);
+
+        System.out.println(exampleSqueak.getScriptPubKey());
+        System.out.println(HEX.encode(exampleSqueak.getScriptPubKey().getProgram()));
+        System.out.println(exampleSqueak.getScriptPubKey().getProgram().length);
     }
 
     @Test
@@ -128,6 +134,27 @@ public class SqueakTest {
     @Test
     public void testGetAddress() throws Exception {
         assertEquals("1LndtWRXeZKUBjRu4K28d26PVWHopFJ9Z6", exampleSqueak.getAddress().toString());
+    }
+
+    @Test
+    public void testMakeSqueak() throws Exception {
+        ECKey signingKey = new ECKey();
+        String message = "test message 123";
+
+        Squeak squeak = Squeak.makeSqueakFromStr(
+                MAINNET,
+                signingKey,
+                message,
+                0,
+                Sha256Hash.wrap("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"),
+                System.currentTimeMillis() / 1000,
+                Sha256Hash.wrap("0000000000000000000000000000000000000000000000000000000000000000")
+        );
+
+        System.out.println(squeak);
+        System.out.println(squeak.getDecryptedContentStr());
+
+        squeak.verify();
     }
 
 /*

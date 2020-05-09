@@ -62,7 +62,7 @@ public class Encryption {
         SecureRandom random = new SecureRandom();
         byte bytes[] = new byte[NONCE_LENGTH];
         random.nextBytes(bytes);
-        return ByteBuffer.wrap(bytes).getLong();
+        return ByteBuffer.wrap(bytes).getInt();
     }
 
 }

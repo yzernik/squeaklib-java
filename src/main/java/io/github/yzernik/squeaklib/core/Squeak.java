@@ -11,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
+import java.nio.charset.Charset;
 import java.util.EnumSet;
 
 import static org.bitcoinj.core.Utils.HEX;
@@ -25,6 +26,7 @@ public class Squeak extends Message {
     public static final int IV_SIZE = 16;
     public static final int DATA_KEY_SIZE = 32;
     public static final int ENC_CONTENT_SIZE = 1136;
+    public static final int CONTENT_SIZE = 1120;
 
     /** Value to use if the block height is unknown */
     public static final int BLOCK_HEIGHT_UNKNOWN = -1;
@@ -118,8 +120,11 @@ public class Squeak extends Message {
         headerBytesValid = serializer.isParseRetainMode();
 
         // content
-        parseContent(offset + HEADER_SIZE);
+        this.encContent = encContent;
+        this.scriptSigBytes = scriptPubKeyBytes;
+        this.vchDataKey = vchDataKey;
 
+        contentBytesValid = serializer.isParseRetainMode();
 
         length = HEADER_SIZE;
     }
@@ -438,6 +443,9 @@ public class Squeak extends Message {
      */
     public void verifyContent() throws VerificationException {
         // Content length check
+        System.out.println("encContent.length: " + encContent.length);
+        System.out.println("ENC_CONTENT_SIZE: " + ENC_CONTENT_SIZE);
+        System.out.println("encContent: " + HEX.encode(encContent));
         if (encContent.length != ENC_CONTENT_SIZE)
             throw new VerificationException("verifyContent() : encContent length does not match the required length");
 
@@ -511,14 +519,18 @@ public class Squeak extends Message {
         byte[] encContent = Encryption.encryptContent(dataKey, iv, content);
         Sha256Hash dataKeyHash = hashDataKey(dataKey);
         long nonce = Encryption.generateNonce();
-        byte[] pubkeyScriptBytes = signingKey.getPubKey();
+        byte[] pubKeyHash = signingKey.getPubKeyHash();
+        Script pubKeyScript = Signing.makePubKeyScript(pubKeyHash);
+        System.out.println("pubKeyScript: " + pubKeyScript);
+        System.out.println("pubkeyScriptBytes: " + HEX.encode(pubKeyScript.getProgram()));
+        System.out.println("pubkeyScriptBytes length: " + pubKeyScript.getProgram().length);
         Squeak squeak = new Squeak(
                 params,
                 Sha256Hash.wrapReversed(Sha256Hash.hashTwice(encContent)),
                 replyTo,
                 blockHash,
                 blockHeight,
-                pubkeyScriptBytes,
+                pubKeyScript.getProgram(),
                 dataKeyHash,
                 iv,
                 timestamp,
@@ -526,9 +538,42 @@ public class Squeak extends Message {
                 encContent,
                 dataKey
         );
-        Script sigScript = squeak.signSqueak(signingKey, pubkeyScriptBytes);
+        System.out.println(squeak);
+        Script sigScript = squeak.signSqueak(signingKey, pubKeyScript.getProgram());
         squeak.setScriptSig(sigScript);
         return squeak;
+    }
+
+    public static Squeak makeSqueakFromStr(NetworkParameters params, ECKey signingKey, String message, int blockHeight, Sha256Hash blockHash, long timestamp, Sha256Hash replyTo) throws Exception {
+        return makeSqueak(
+                params,
+                signingKey,
+                encodeContent(message),
+                blockHeight,
+                blockHash,
+                timestamp,
+                replyTo);
+    }
+
+    private static String padString(String s) {
+        if (s.length() >= CONTENT_SIZE) {
+            return s;
+        }
+        StringBuilder sb = new StringBuilder(s);
+        while (sb.length() < CONTENT_SIZE - s.length()) {
+            sb.append('0');
+        }
+        return sb.toString();
+    }
+
+    private static byte[] encodeContent(String s) {
+        String paddedStr = padString(s);
+        return paddedStr.getBytes(Charset.forName("utf-8"));
+    }
+
+    private static String decodeContent(byte[] bytes) {
+        String paddedStr = new String(bytes, Charset.forName("utf-8"));
+        return paddedStr.trim();
     }
 
     /**
