@@ -1,7 +1,6 @@
 package io.github.yzernik.squeaklib.core;
 
 import org.bitcoinj.core.BitcoinSerializer;
-import org.bitcoinj.core.Block;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.ProtocolException;
 import org.slf4j.Logger;
@@ -21,14 +20,6 @@ public class SqueakSerializer extends BitcoinSerializer {
     }
 
     /**
-     * Make a block from the payload. Extension point for alternative
-     * serialization format support.
-     */
-    public Block makeBlock(final byte[] payloadBytes, final int offset, final int length) throws ProtocolException {
-        return new Block(getParameters(), payloadBytes, offset, this, length);
-    }
-
-    /**
      * Make a squeak from the payload.
      */
     public Squeak makeSqueak(final byte[] payloadBytes, final int offset, final int length) throws ProtocolException {
@@ -36,8 +27,8 @@ public class SqueakSerializer extends BitcoinSerializer {
     }
 
     /**
-     * Make a block from the payload, using an offset of zero and the payload
-     * length as block length.
+     * Make a squeak from the payload, using an offset of zero and the payload
+     * length as squeak length.
      */
     public final Squeak makeSqueak(byte[] payloadBytes) throws ProtocolException {
         return makeSqueak(payloadBytes, 0, payloadBytes.length);
