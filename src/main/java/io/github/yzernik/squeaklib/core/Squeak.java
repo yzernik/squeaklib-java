@@ -459,8 +459,6 @@ public class Squeak extends Message {
         Sha256Hash squeakHash = getHash();
         Script pubkeyScript = getScriptPubKey();
         try {
-            Transaction tx = new SqueakTransaction(params, squeakHash);
-            // sigScript.correctlySpends(tx, 0, pubkeyScript, EnumSet.noneOf(Script.VerifyFlag.class));
             sigScript.correctlyAuthors(params, squeakHash, pubkeyScript, EnumSet.noneOf(Script.VerifyFlag.class));
         } catch (ScriptException e) {
             throw new VerificationException("verifyContent() : invalid signature for the given squeak");
