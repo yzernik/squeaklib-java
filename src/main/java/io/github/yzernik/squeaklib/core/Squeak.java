@@ -240,6 +240,7 @@ public class Squeak extends Message {
         squeak.scriptPubKey = scriptPubKey;
         squeak.scriptSigBytes = scriptPubKeyBytes;
         squeak.hashEncContent = hashEncContent;
+        squeak.hashDataKey = hashDataKey;
         squeak.vchIv = vchIv;
         squeak.version = version;
         squeak.nTime = nTime;
