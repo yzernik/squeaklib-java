@@ -2,8 +2,11 @@ package io.github.yzernik.squeaklib.core;
 
 import com.google.common.io.ByteStreams;
 import org.bitcoinj.core.Context;
+import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.params.MainNetParams;
+import org.bitcoinj.params.RegTestParams;
 import org.bitcoinj.params.TestNet3Params;
 import org.bitcoinj.params.UnitTestParams;
 import org.bitcoinj.script.ScriptOpCodes;
@@ -18,6 +21,7 @@ public class SqueakTest {
     private static final NetworkParameters TESTNET = TestNet3Params.get();
     private static final NetworkParameters UNITTEST = UnitTestParams.get();
     private static final NetworkParameters MAINNET = MainNetParams.get();
+    private static final NetworkParameters REGTEST = RegTestParams.get();
 
     private byte[] exampleSqueakBytes;
     private Squeak exampleSqueak;
@@ -27,10 +31,10 @@ public class SqueakTest {
 
     @Before
     public void setUp() throws Exception {
-        new Context(TESTNET);
+        new Context(MAINNET);
         // One with some of transactions in, so a good test of the merkle tree hashing.
         exampleSqueakBytes = ByteStreams.toByteArray(SqueakTest.class.getResourceAsStream("squeak_example.dat"));
-        NetworkParameters networkParameters = TESTNET;
+        NetworkParameters networkParameters = MAINNET;
 
         // Set up squeak
         SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, true);
@@ -116,10 +120,34 @@ public class SqueakTest {
     @Test
     public void testGetDecryptedContent() throws Exception {
         byte[] decryptedContent = exampleSqueak.getDecryptedContent();
-        String decryptedMessage = new String(decryptedContent).trim();
+        String decryptedMessage = exampleSqueak.getDecryptedContentStr();
 
         assertEquals(decryptedContent.length, 1120);
         assertEquals(decryptedMessage, "Hello world!");
+    }
+
+
+    @Test
+    public void testGetAddress() throws Exception {
+        assertEquals("1LndtWRXeZKUBjRu4K28d26PVWHopFJ9Z6", exampleSqueak.getAddress().toString());
+    }
+
+    @Test
+    public void testMakeSqueak() throws Exception {
+        ECKey signingKey = new ECKey();
+        String message = "test message 123";
+        Squeak squeak = Squeak.makeSqueakFromStr(
+                MAINNET,
+                signingKey,
+                message,
+                0,
+                Sha256Hash.wrap("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"),
+                System.currentTimeMillis() / 1000,
+                Sha256Hash.wrap("0000000000000000000000000000000000000000000000000000000000000000")
+        );
+
+        squeak.verify();
+        assertEquals(squeak.getDecryptedContentStr(), "test message 123");
     }
 
 /*
