@@ -1,9 +1,6 @@
 package io.github.yzernik.squeaklib.core;
 
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.SignatureDecodeException;
-import org.bitcoinj.core.Utils;
+import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
@@ -50,6 +47,7 @@ public class Signing {
         public boolean verify(byte[] data, Signature signature) throws SigningException;
         public byte[] getPubKeyBytes();
         public byte[] getPubKeyHash();
+        public String getAddress(NetworkParameters params);
     }
 
     public interface PrivateKey {
@@ -105,6 +103,12 @@ public class Signing {
         @Override
         public byte[] getPubKeyHash() {
             return Utils.sha256hash160(pubKeyBytes);
+        }
+
+        @Override
+        public String getAddress(NetworkParameters params) {
+            LegacyAddress address = LegacyAddress.fromPubKeyHash(params, getPubKeyHash());
+            return address.toString();
         }
     }
 

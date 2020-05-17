@@ -2,6 +2,7 @@ package io.github.yzernik.squeaklib.core;
 
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.params.MainNetParams;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,6 +40,14 @@ public class SigningTest {
         Signing.Signature signature = privateKey.sign(hash.getBytes());
 
         assert !publicKey.verify(hashOtherData.getBytes(), signature);
+    }
+
+    @Test
+    public void testGetAddress() throws Exception {
+        Signing.PublicKey publicKey = keyPair.getPublicKey();
+        String address = publicKey.getAddress(MainNetParams.get());
+
+        assert (address.length() >= 26 && address.length() <= 35);
     }
 
     private byte[] generateRandomData() {
