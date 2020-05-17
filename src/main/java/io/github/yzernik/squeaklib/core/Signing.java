@@ -3,6 +3,7 @@ package io.github.yzernik.squeaklib.core;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.SignatureDecodeException;
+import org.bitcoinj.core.Utils;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
@@ -17,9 +18,9 @@ public class Signing {
      * @param verifyingKeyBytes
      * @return
      */
-    public static Script makeSigScript(ECKey.ECDSASignature signature, byte[] verifyingKeyBytes) {
+    public static Script makeSigScript(Signature signature, byte[] verifyingKeyBytes) {
         ScriptBuilder scriptBuilder = new ScriptBuilder();
-        scriptBuilder.data(signature.encodeToDER());
+        scriptBuilder.data(signature.getSignatureBytes());
         scriptBuilder.data(verifyingKeyBytes);
         return scriptBuilder.build();
     }
@@ -48,6 +49,7 @@ public class Signing {
     public interface PublicKey {
         public boolean verify(byte[] data, Signature signature) throws SigningException;
         public byte[] getPubKeyBytes();
+        public byte[] getPubKeyHash();
     }
 
     public interface PrivateKey {
@@ -99,6 +101,11 @@ public class Signing {
         public byte[] getPubKeyBytes() {
             return pubKeyBytes;
         }
+
+        @Override
+        public byte[] getPubKeyHash() {
+            return Utils.sha256hash160(pubKeyBytes);
+        }
     }
 
     public static class BitcoinjPrivateKey implements PrivateKey {
@@ -123,6 +130,10 @@ public class Signing {
     public static class BitcoinjKeyPair implements KeyPair {
         private PrivateKey privateKey;
         private PublicKey publicKey;
+
+        public BitcoinjKeyPair() {
+            this(new ECKey());
+        }
 
         public BitcoinjKeyPair(ECKey ecKey) {
             this.privateKey = new BitcoinjPrivateKey(ecKey);
