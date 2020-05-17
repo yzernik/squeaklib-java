@@ -2,7 +2,6 @@ package io.github.yzernik.squeaklib.core;
 
 import com.google.common.io.ByteStreams;
 import org.bitcoinj.core.Context;
-import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.params.MainNetParams;
@@ -175,11 +174,11 @@ public class SqueakTest {
 
     @Test
     public void testMakeSqueak() throws Exception {
-        ECKey signingKey = new ECKey();
+        Signing.KeyPair keyPair = new Signing.BitcoinjKeyPair();
         String message = "test message 123";
         Squeak squeak = Squeak.makeSqueakFromStr(
                 MAINNET,
-                signingKey,
+                keyPair,
                 message,
                 0,
                 Sha256Hash.wrap("4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"),

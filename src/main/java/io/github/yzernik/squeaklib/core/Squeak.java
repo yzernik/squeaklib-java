@@ -508,21 +508,22 @@ public class Squeak extends Message {
     /**
      * Make a new squeak.
      *
-     * @param signingKey
+     * @param params
+     * @param keyPair
      * @param content
      * @param blockHeight
      * @param timestamp
      * @param replyTo
      * @return
      */
-    public static Squeak makeSqueak(NetworkParameters params, ECKey signingKey, byte[] content, int blockHeight, Sha256Hash blockHash, long timestamp, Sha256Hash replyTo) throws Exception {
+    public static Squeak makeSqueak(NetworkParameters params, Signing.KeyPair keyPair, byte[] content, int blockHeight, Sha256Hash blockHash, long timestamp, Sha256Hash replyTo) throws Exception {
         byte[] dataKey = Encryption.generateDataKey();
         byte[] iv = Encryption.generateIV();
         byte[] encContent = Encryption.encryptContent(dataKey, iv, content);
         Sha256Hash dataKeyHash = hashDataKey(dataKey);
         long nonce = Encryption.generateNonce();
-        byte[] pubKeyBytes = signingKey.getPubKey();
-        byte[] pubKeyHash = signingKey.getPubKeyHash();
+        byte[] pubKeyBytes = keyPair.getPublicKey().getPubKeyBytes();
+        byte[] pubKeyHash = keyPair.getPublicKey().getPubKeyHash();
         Script pubKeyScript = Signing.makePubKeyScript(pubKeyHash);
         Squeak squeak = new Squeak(
                 params,
@@ -538,15 +539,15 @@ public class Squeak extends Message {
                 encContent,
                 dataKey
         );
-        Script sigScript = squeak.signSqueak(signingKey, pubKeyBytes);
+        Script sigScript = squeak.signSqueak(keyPair.getPrivateKey(), pubKeyBytes);
         squeak.setScriptSig(sigScript);
         return squeak;
     }
 
-    public static Squeak makeSqueakFromStr(NetworkParameters params, ECKey signingKey, String message, int blockHeight, Sha256Hash blockHash, long timestamp, Sha256Hash replyTo) throws Exception {
+    public static Squeak makeSqueakFromStr(NetworkParameters params, Signing.KeyPair keyPair, String message, int blockHeight, Sha256Hash blockHash, long timestamp, Sha256Hash replyTo) throws Exception {
         return makeSqueak(
                 params,
-                signingKey,
+                keyPair,
                 Encoding.encodeMessage(message),
                 blockHeight,
                 blockHash,
@@ -556,15 +557,15 @@ public class Squeak extends Message {
 
     /**
      * Sign the squeak and return the sig script.
-     * @param signingKey
+     * @param privateKey
      * @param pubKeyBytes
      * @return
      */
-    public Script signSqueak(ECKey signingKey, byte[] pubKeyBytes) {
+    public Script signSqueak(Signing.PrivateKey privateKey, byte[] pubKeyBytes) {
         // The hash needs to be reversed because it is stored as
         // a big-endian.
         Sha256Hash squeakHash = Sha256Hash.wrap(getHash().getReversedBytes());
-        ECKey.ECDSASignature signature = signingKey.sign(squeakHash);
+        Signing.Signature signature = privateKey.sign(squeakHash.getBytes());
         return Signing.makeSigScript(signature, pubKeyBytes);
     }
 
