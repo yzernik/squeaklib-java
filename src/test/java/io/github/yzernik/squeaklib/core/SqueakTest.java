@@ -217,7 +217,7 @@ public class SqueakTest {
                 exampleSqueak.getHashReplySqk(),
                 exampleSqueak.getHashBlock(),
                 exampleSqueak.getBlockHeight(),
-                exampleSqueak.getScriptPubKey().getProgram(),
+                exampleSqueak.getScriptPubKeyBytes(),
                 exampleSqueak.getHashDataKey(),
                 exampleSqueak.getVchIv(),
                 exampleSqueak.getTime(),

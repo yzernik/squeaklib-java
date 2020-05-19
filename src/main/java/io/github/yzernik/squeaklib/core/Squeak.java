@@ -328,6 +328,10 @@ public class Squeak extends Message {
         return scriptPubKey;
     }
 
+    public byte[] getScriptPubKeyBytes() {
+        return scriptPubKeyBytes;
+    }
+
     /**
      * Get the address for the author of this squeak.
      * @return
