@@ -134,6 +134,7 @@ public class Signing {
     public static class BitcoinjKeyPair implements KeyPair {
         private PrivateKey privateKey;
         private PublicKey publicKey;
+        private ECKey ecKey;
 
         public BitcoinjKeyPair() {
             this(new ECKey());
@@ -142,6 +143,7 @@ public class Signing {
         public BitcoinjKeyPair(ECKey ecKey) {
             this.privateKey = new BitcoinjPrivateKey(ecKey);
             this.publicKey = new BitcoinjPublicKey(ecKey.getPubKey());
+            this.ecKey = ecKey;
         }
 
         @Override
@@ -152,6 +154,10 @@ public class Signing {
         @Override
         public PublicKey getPublicKey() {
             return publicKey;
+        }
+
+        public ECKey getEcKey() {
+            return ecKey;
         }
     }
 
