@@ -223,9 +223,12 @@ public class SqueakTest {
                 exampleSqueak.getTime(),
                 exampleSqueak.getNonce(),
                 exampleSqueak.getEncContent(),
+                exampleSqueak.getScriptSigBytes(),
                 exampleSqueak.getDataKey()
         );
 
+        exampleSqueak.verify();
+        otherSqueak.verify();
         assertEquals(otherSqueak, exampleSqueak);
     }
 

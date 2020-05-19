@@ -97,7 +97,7 @@ public class Squeak extends Message {
         super(params, payloadBytes, offset, serializer, length);
     }
 
-    public Squeak(NetworkParameters params, Sha256Hash hashEncContent, Sha256Hash hashReplySqk, Sha256Hash hashBlock, long nBlockHeight, byte[] scriptPubKeyBytes, Sha256Hash hashDataKey, byte[] vchIv, long nTime, long nNonce, byte[] encContent, byte[] vchDataKey)
+    public Squeak(NetworkParameters params, Sha256Hash hashEncContent, Sha256Hash hashReplySqk, Sha256Hash hashBlock, long nBlockHeight, byte[] scriptPubKeyBytes, Sha256Hash hashDataKey, byte[] vchIv, long nTime, long nNonce, byte[] encContent, byte[] scriptsigBytes, byte[] vchDataKey)
             throws ProtocolException {
         super(params);
         // Set up a few basic things. We are not complete after this though.
@@ -116,7 +116,7 @@ public class Squeak extends Message {
 
         // content
         this.encContent = encContent;
-        this.scriptSigBytes = scriptPubKeyBytes;
+        this.scriptSigBytes = scriptsigBytes;
         this.vchDataKey = vchDataKey;
 
         contentBytesValid = serializer.isParseRetainMode();
@@ -374,6 +374,10 @@ public class Squeak extends Message {
         return script;
     }
 
+    public byte[] getScriptSigBytes() {
+        return scriptSigBytes;
+    }
+
     /**
      * Set the encrypted content.
      */
@@ -545,6 +549,7 @@ public class Squeak extends Message {
                 timestamp,
                 nonce,
                 encContent,
+                null,
                 dataKey
         );
         Script sigScript = squeak.signSqueak(keyPair.getPrivateKey(), pubKeyBytes);
