@@ -317,6 +317,10 @@ public class Squeak extends Message {
         return hashBlock;
     }
 
+    public long getBlockHeight() {
+        return nBlockHeight;
+    }
+
     public Script getScriptPubKey() throws ScriptException {
         if (scriptPubKey == null) {
             scriptPubKey = new Script(scriptPubKeyBytes);
