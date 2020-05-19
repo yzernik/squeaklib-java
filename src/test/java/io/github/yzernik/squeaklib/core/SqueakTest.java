@@ -209,4 +209,27 @@ public class SqueakTest {
         assertEquals(reparsed, exampleSqueak);
     }
 
+    @Test
+    public void testConstructor() throws Exception {
+        Squeak otherSqueak = new Squeak(
+                MainNetParams.get(),
+                exampleSqueak.getHashEncContent(),
+                exampleSqueak.getHashReplySqk(),
+                exampleSqueak.getHashBlock(),
+                exampleSqueak.getBlockHeight(),
+                exampleSqueak.getScriptPubKeyBytes(),
+                exampleSqueak.getHashDataKey(),
+                exampleSqueak.getVchIv(),
+                exampleSqueak.getTime(),
+                exampleSqueak.getNonce(),
+                exampleSqueak.getEncContent(),
+                exampleSqueak.getScriptSigBytes(),
+                exampleSqueak.getDataKey()
+        );
+
+        exampleSqueak.verify();
+        otherSqueak.verify();
+        assertEquals(otherSqueak, exampleSqueak);
+    }
+
 }
