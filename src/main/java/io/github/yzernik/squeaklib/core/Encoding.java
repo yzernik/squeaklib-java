@@ -8,6 +8,10 @@ public class Encoding {
     private static final Charset CHARSET = Charset.forName("utf-8");
 
     public static byte[] encodeMessage(String s) {
+        if (s.length() > CONTENT_LENGTH) {
+            throw new EncodingException("String input length " + s.length() + " is larger than maximum " + CONTENT_LENGTH);
+        }
+
         byte[] bytes = s.getBytes(CHARSET);
         byte[] ret = new byte[CONTENT_LENGTH];
         ByteBuffer bb = ByteBuffer.wrap(ret);

@@ -1,6 +1,6 @@
 package io.github.yzernik.squeaklib.core;
 
-public class VerificationException extends RuntimeException {
+public class VerificationException extends SqueakException {
     public VerificationException(String msg) {
         super(msg);
     }
