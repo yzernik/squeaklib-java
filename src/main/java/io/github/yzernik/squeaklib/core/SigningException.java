@@ -1,7 +1,7 @@
 package io.github.yzernik.squeaklib.core;
 
 
-public class SigningException extends RuntimeException {
+public class SigningException extends SqueakException {
     public SigningException(String msg) {
         super(msg);
     }

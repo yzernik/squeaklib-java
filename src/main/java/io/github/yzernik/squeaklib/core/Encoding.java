@@ -4,11 +4,14 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 public class Encoding {
-    private static final int CONTENT_LENGTH = 1120;
+    public static final int CONTENT_LENGTH = 1120;
     private static final Charset CHARSET = Charset.forName("utf-8");
 
     public static byte[] encodeMessage(String s) {
         byte[] bytes = s.getBytes(CHARSET);
+        if (bytes.length > CONTENT_LENGTH) {
+            throw new EncodingException("Encoded string input length " + bytes.length + " is larger than maximum " + CONTENT_LENGTH);
+        }
         byte[] ret = new byte[CONTENT_LENGTH];
         ByteBuffer bb = ByteBuffer.wrap(ret);
         bb.put(bytes);
