@@ -232,4 +232,21 @@ public class SqueakTest {
         assertEquals(otherSqueak, exampleSqueak);
     }
 
+    @Test
+    public void testFieldLengths() throws Exception {
+        exampleSqueak.verify();
+        assertEquals(32, exampleSqueak.getHash().getBytes().length);
+        assertEquals(32, exampleSqueak.getHashEncContent().getBytes().length);
+        assertEquals(32, exampleSqueak.getHashReplySqk().getBytes().length);
+        assertEquals(32, exampleSqueak.getHashBlock().getBytes().length);
+        assert (50 > exampleSqueak.getScriptPubKey().getProgram().length);
+        assertEquals(32, exampleSqueak.getHashDataKey().getBytes().length);
+        assertEquals(16, exampleSqueak.getVchIv().length);
+        assertEquals(1136, exampleSqueak.getEncContent().length);
+        assert (200 > exampleSqueak.getScriptSig().getProgram().length);
+        assert (50 > exampleSqueak.getAddress().toString().length());
+        assertEquals(32, exampleSqueak.getDataKey().length);
+        assertEquals(1120, exampleSqueak.getDecryptedContent().length);
+    }
+
 }
