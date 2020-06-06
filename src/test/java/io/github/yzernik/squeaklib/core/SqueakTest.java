@@ -206,7 +206,34 @@ public class SqueakTest {
         SqueakSerializer squeakSerializer = new SqueakSerializer(MAINNET, true);
         Squeak reparsed = squeakSerializer.makeSqueak(exampleSqueak.bitcoinSerialize());
 
+        reparsed.verify();
         assertEquals(reparsed, exampleSqueak);
+    }
+
+    @Test
+    public void testSerializeDeserializeFromConstructor() throws Exception {
+        Squeak squeak = new Squeak(
+                MainNetParams.get(),
+                exampleSqueak.getHashEncContent(),
+                exampleSqueak.getHashReplySqk(),
+                exampleSqueak.getHashBlock(),
+                exampleSqueak.getBlockHeight(),
+                exampleSqueak.getScriptPubKeyBytes(),
+                exampleSqueak.getHashDataKey(),
+                exampleSqueak.getVchIv(),
+                exampleSqueak.getTime(),
+                exampleSqueak.getNonce(),
+                exampleSqueak.getEncContent(),
+                exampleSqueak.getScriptSigBytes(),
+                exampleSqueak.getDataKey()
+        );
+        squeak.verify();
+
+        SqueakSerializer squeakSerializer = new SqueakSerializer(MAINNET, true);
+        Squeak reparsed = squeakSerializer.makeSqueak(squeak.bitcoinSerialize());
+
+        reparsed.verify();
+        assertEquals(reparsed, squeak);
     }
 
     @Test

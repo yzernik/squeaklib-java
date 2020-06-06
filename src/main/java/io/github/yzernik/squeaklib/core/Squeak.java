@@ -119,6 +119,7 @@ public class Squeak extends Message {
         this.scriptSigBytes = scriptsigBytes;
         this.vchDataKey = vchDataKey;
 
+        // TODO: figure out contentBytesValid
         contentBytesValid = serializer.isParseRetainMode();
 
         length = HEADER_SIZE;
@@ -291,7 +292,16 @@ public class Squeak extends Message {
     }
 
     private void writeContent(OutputStream stream) throws IOException {
-        // TODO
+        if (encContent == null) {
+            return;
+        }
+        stream.write(encContent);
+        stream.write(new VarInt(scriptSigBytes.length).encode());
+        stream.write(scriptSigBytes);
+        if (vchDataKey == null) {
+            return;
+        }
+        stream.write(vchDataKey);
     }
 
     @Override
