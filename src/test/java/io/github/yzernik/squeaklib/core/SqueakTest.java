@@ -206,7 +206,34 @@ public class SqueakTest {
         SqueakSerializer squeakSerializer = new SqueakSerializer(MAINNET, true);
         Squeak reparsed = squeakSerializer.makeSqueak(exampleSqueak.bitcoinSerialize());
 
+        reparsed.verify();
         assertEquals(reparsed, exampleSqueak);
+    }
+
+    @Test
+    public void testSerializeDeserializeFromConstructor() throws Exception {
+        Squeak squeak = new Squeak(
+                MainNetParams.get(),
+                exampleSqueak.getHashEncContent(),
+                exampleSqueak.getHashReplySqk(),
+                exampleSqueak.getHashBlock(),
+                exampleSqueak.getBlockHeight(),
+                exampleSqueak.getScriptPubKeyBytes(),
+                exampleSqueak.getHashDataKey(),
+                exampleSqueak.getVchIv(),
+                exampleSqueak.getTime(),
+                exampleSqueak.getNonce(),
+                exampleSqueak.getEncContent(),
+                exampleSqueak.getScriptSigBytes(),
+                exampleSqueak.getDataKey()
+        );
+        squeak.verify();
+
+        SqueakSerializer squeakSerializer = new SqueakSerializer(MAINNET, true);
+        Squeak reparsed = squeakSerializer.makeSqueak(squeak.bitcoinSerialize());
+
+        reparsed.verify();
+        assertEquals(reparsed, squeak);
     }
 
     @Test
@@ -230,6 +257,23 @@ public class SqueakTest {
         exampleSqueak.verify();
         otherSqueak.verify();
         assertEquals(otherSqueak, exampleSqueak);
+    }
+
+    @Test
+    public void testFieldLengths() throws Exception {
+        exampleSqueak.verify();
+        assertEquals(32, exampleSqueak.getHash().getBytes().length);
+        assertEquals(32, exampleSqueak.getHashEncContent().getBytes().length);
+        assertEquals(32, exampleSqueak.getHashReplySqk().getBytes().length);
+        assertEquals(32, exampleSqueak.getHashBlock().getBytes().length);
+        assert (50 > exampleSqueak.getScriptPubKey().getProgram().length);
+        assertEquals(32, exampleSqueak.getHashDataKey().getBytes().length);
+        assertEquals(16, exampleSqueak.getVchIv().length);
+        assertEquals(1136, exampleSqueak.getEncContent().length);
+        assert (200 > exampleSqueak.getScriptSig().getProgram().length);
+        assert (50 > exampleSqueak.getAddress().toString().length());
+        assertEquals(32, exampleSqueak.getDataKey().length);
+        assertEquals(1120, exampleSqueak.getDecryptedContent().length);
     }
 
 }
