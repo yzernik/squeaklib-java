@@ -11,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
+import java.util.Arrays;
 import java.util.EnumSet;
 
 import static org.bitcoinj.core.Utils.HEX;
@@ -193,11 +194,7 @@ public class Squeak extends Message {
         // scriptSig = new Script(scriptSigBytes);
 
         // Get the data key.
-        if (payload.length - cursor == DATA_KEY_SIZE) {
-            vchDataKey = readBytes(DATA_KEY_SIZE);
-        } else {
-            vchDataKey = null;
-        }
+        vchDataKey = readBytes(DATA_KEY_SIZE);
 
         contentBytesValid = serializer.isParseRetainMode();
     }
@@ -302,9 +299,6 @@ public class Squeak extends Message {
         stream.write(encContent);
         stream.write(new VarInt(scriptSigBytes.length).encode());
         stream.write(scriptSigBytes);
-        if (vchDataKey == null) {
-            return;
-        }
         stream.write(vchDataKey);
     }
 
@@ -413,6 +407,7 @@ public class Squeak extends Message {
      * Set the data key.
      */
     public void setDataKey(byte[] dataKey) throws ScriptException {
+        assert (dataKey.length == 32);
         this.vchDataKey = dataKey;
         this.payload = null;
     }
@@ -421,8 +416,13 @@ public class Squeak extends Message {
      * Clear the data key.
      */
     public void clearDataKey() throws ScriptException {
-        this.vchDataKey = null;
-        this.payload = null;
+        byte[] emptyBytes = new byte[32];
+        setDataKey(emptyBytes);
+    }
+
+    public boolean hasDataKey() {
+        byte[] emptyBytes = new byte[32];
+        return !Arrays.equals(vchDataKey, emptyBytes);
     }
 
     public byte[] getDataKey() {
