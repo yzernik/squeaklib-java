@@ -15,6 +15,7 @@ import org.junit.Test;
 import static org.bitcoinj.core.Utils.HEX;
 import static org.bitcoinj.core.Utils.reverseBytes;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class SqueakTest {
     private static final NetworkParameters TESTNET = TestNet3Params.get();
@@ -208,6 +209,7 @@ public class SqueakTest {
 
         reparsed.verify();
         assertEquals(reparsed, exampleSqueak);
+        assert (reparsed.hasDataKey());
     }
 
     @Test
@@ -234,6 +236,18 @@ public class SqueakTest {
 
         reparsed.verify();
         assertEquals(reparsed, squeak);
+    }
+
+    @Test
+    public void testSerializeDeserializeWithoutDataKey() throws Exception {
+        SqueakSerializer squeakSerializer = new SqueakSerializer(MAINNET, true);
+        byte[] serialized = exampleSqueakMissingDataKey.bitcoinSerialize();
+        Squeak reparsed = squeakSerializer.makeSqueak(serialized);
+
+        reparsed.verify(true);
+        assertEquals(reparsed, exampleSqueakMissingDataKey);
+        assert (!reparsed.hasDataKey());
+        assertNull(reparsed.getDataKey());
     }
 
     @Test
