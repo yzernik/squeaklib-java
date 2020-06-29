@@ -193,7 +193,11 @@ public class Squeak extends Message {
         // scriptSig = new Script(scriptSigBytes);
 
         // Get the data key.
-        vchDataKey = readBytes(DATA_KEY_SIZE);
+        if (payload.length - cursor == DATA_KEY_SIZE) {
+            vchDataKey = readBytes(DATA_KEY_SIZE);
+        } else {
+            vchDataKey = null;
+        }
 
         contentBytesValid = serializer.isParseRetainMode();
     }
@@ -393,6 +397,7 @@ public class Squeak extends Message {
      */
     public void setEncContent(byte[] encContent) throws ScriptException {
         this.encContent = encContent;
+        this.payload = null;
     }
 
     /**
@@ -401,6 +406,7 @@ public class Squeak extends Message {
     public void setScriptSig(Script script) throws ScriptException {
         this.scriptSig = null;
         this.scriptSigBytes = script.getProgram();
+        this.payload = null;
     }
 
     /**
@@ -408,6 +414,7 @@ public class Squeak extends Message {
      */
     public void setDataKey(byte[] dataKey) throws ScriptException {
         this.vchDataKey = dataKey;
+        this.payload = null;
     }
 
     /**
@@ -415,6 +422,7 @@ public class Squeak extends Message {
      */
     public void clearDataKey() throws ScriptException {
         this.vchDataKey = null;
+        this.payload = null;
     }
 
     public byte[] getDataKey() {
