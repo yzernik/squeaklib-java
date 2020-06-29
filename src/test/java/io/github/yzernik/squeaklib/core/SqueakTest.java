@@ -247,6 +247,7 @@ public class SqueakTest {
         reparsed.verify(true);
         assertEquals(reparsed, exampleSqueakMissingDataKey);
         assert (!reparsed.hasDataKey());
+        assertNull(reparsed.getDataKey());
     }
 
     @Test

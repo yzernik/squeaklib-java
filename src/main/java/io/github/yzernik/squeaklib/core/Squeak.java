@@ -426,6 +426,9 @@ public class Squeak extends Message {
     }
 
     public byte[] getDataKey() {
+        if (!hasDataKey()) {
+            return null;
+        }
         return vchDataKey;
     }
 
