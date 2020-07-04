@@ -44,8 +44,8 @@ public class Squeak extends Message {
     private Sha256Hash hashBlock;
     private long nBlockHeight;
 
-    // A transaction output has a script used for authenticating that the redeemer is allowed to spend
-    // this output.
+    // A squeak has a script used for authenticating that a given address is the author
+    // of this squeak.
     private byte[] scriptPubKeyBytes;
     // The script bytes are parsed and turned into a Script on demand.
     private Script scriptPubKey;
@@ -159,8 +159,7 @@ public class Squeak extends Message {
         nTime = readUint32();
         nNonce = readUint32();
         // Get the hash
-        // TODO: uncomment.
-        // hash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(payload, offset, cursor - offset));
+        hash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(payload, offset, cursor - offset));
         headerBytesValid = serializer.isParseRetainMode();
 
         // content
