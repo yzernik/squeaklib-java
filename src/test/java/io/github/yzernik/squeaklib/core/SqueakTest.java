@@ -65,6 +65,7 @@ public class SqueakTest {
     }
 
     public Squeak makeExampleSqueak() throws Exception {
+        System.err.println("Making squeak with timestamp: " + timestamp);
         return Squeak.makeSqueakFromStr(
                 NETWORK,
                 keyPair,

@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.EnumSet;
 
 import static org.bitcoinj.core.Utils.HEX;
@@ -29,7 +30,7 @@ public class Squeak extends Message {
     private static final Logger log = LoggerFactory.getLogger(Squeak.class);
 
     /** How many bytes are required to represent a squeak header WITHOUT the trailing 00 length byte. */
-    public static final int HEADER_SIZE = 186;
+    // public static final int HEADER_SIZE = 186;
     public static final int IV_SIZE = 16;
     public static final int DATA_KEY_SIZE = 32;
     public static final int ENC_CONTENT_SIZE = 1136;
@@ -128,7 +129,7 @@ public class Squeak extends Message {
         // TODO: figure out contentBytesValid
         contentBytesValid = serializer.isParseRetainMode();
 
-        length = HEADER_SIZE;
+        // length = HEADER_SIZE;
     }
 
     /** Special case constructor, used for the genesis node, cloneAsHeader and unit tests. */
@@ -137,7 +138,7 @@ public class Squeak extends Message {
         super(params);
         // Set up a few basic things. We are not complete after this though.
         version = setVersion;
-        length = HEADER_SIZE;
+        // length = HEADER_SIZE;
     }
 
 
@@ -146,9 +147,15 @@ public class Squeak extends Message {
         // header
         cursor = offset;
         version = readUint32();
+
+        System.err.println("parsed version: " + version);
+
         hashEncContent = readHash();
         hashReplySqk = readHash();
         hashBlock = readHash();
+
+        System.err.println("parsed hashBlock: " + hashBlock);
+
         nBlockHeight = readUint32();
 
         // parse the script pubkey
@@ -166,13 +173,18 @@ public class Squeak extends Message {
         vchIv = readBytes(IV_SIZE);
 
         nTime = readUint32();
+
+        System.err.println("parsed nTime: " + nTime);
+        System.err.println("parsed nTime: " + new Date(nTime * 1000));
+
         nNonce = readUint32();
         // Get the hash
         hash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(payload, offset, cursor - offset));
         headerBytesValid = serializer.isParseRetainMode();
 
         // content
-        parseContent(offset + HEADER_SIZE);
+        // parseContent(offset + HEADER_SIZE);
+        parseContent(cursor);
         length = cursor - offset;
     }
 
@@ -184,7 +196,7 @@ public class Squeak extends Message {
      */
     protected void parseContent(final int contentOffset) throws ProtocolException {
         cursor = contentOffset;
-        optimalEncodingMessageSize = HEADER_SIZE;
+        // optimalEncodingMessageSize = HEADER_SIZE;
         if (payload.length == cursor) {
             // This message is just a header, it has no content.
             contentBytesValid = false;
@@ -258,7 +270,8 @@ public class Squeak extends Message {
      */
     private Sha256Hash calculateHash() {
         try {
-            ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream(HEADER_SIZE);
+            // ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream(HEADER_SIZE);
+            ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream();
             writeHeader(bos);
             return Sha256Hash.wrapReversed(Sha256Hash.hashTwice(bos.toByteArray()));
         } catch (IOException e) {
@@ -269,22 +282,33 @@ public class Squeak extends Message {
     // default for testing
     void writeHeader(OutputStream stream) throws IOException {
         // try for cached write first
+        /*
         if (headerBytesValid && payload != null && payload.length >= offset + HEADER_SIZE) {
             stream.write(payload, offset, HEADER_SIZE);
             return;
-        }
+        }*/
         // fall back to manual write
         Utils.uint32ToByteStreamLE(version, stream);
+
+        System.err.println("wrote version: " + version);
+
         stream.write(hashEncContent.getReversedBytes());
         stream.write(hashReplySqk.getReversedBytes());
         stream.write(hashBlock.getReversedBytes());
+
+        System.err.println("wrote hashBlock: " + hashBlock);
+
         Utils.uint32ToByteStreamLE(nBlockHeight, stream);
         stream.write(new VarInt(scriptPubKeyBytes.length).encode());
         stream.write(scriptPubKeyBytes);
+        stream.write(new VarInt(encryptionKeyBytes.length).encode());
         stream.write(encryptionKeyBytes);
         stream.write(encDataKeyBytes);
         stream.write(vchIv);
         Utils.uint32ToByteStreamLE(nTime, stream);
+
+        System.err.println("wrote nTime: " + nTime);
+
         Utils.uint32ToByteStreamLE(nNonce, stream);
     }
 
