@@ -34,34 +34,53 @@ public class SqueakTest {
     public void setUp() throws Exception {
         new Context(MAINNET);
         // One with some of transactions in, so a good test of the merkle tree hashing.
-        exampleSqueakBytes = ByteStreams.toByteArray(SqueakTest.class.getResourceAsStream("squeak_example.dat"));
+        // exampleSqueakBytes = ByteStreams.toByteArray(SqueakTest.class.getResourceAsStream("squeak_example.dat"));
         NetworkParameters networkParameters = MAINNET;
 
         // Set up squeak
         SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, true);
-        exampleSqueak = squeakSerializer.makeSqueak(exampleSqueakBytes);
+        exampleSqueak = makeExampleSqueak();
 
         // Set up squeak with bad signature
-        exampleSqueakBadSig = squeakSerializer.makeSqueak(exampleSqueakBytes);
+        exampleSqueakBadSig = makeExampleSqueak();
         byte[] badScriptSigBytes = exampleSqueakBadSig.getScriptSig().getProgram();
         badScriptSigBytes[10] = (byte) 'x';
         SqueakScript badScriptSig = new SqueakScript(badScriptSigBytes);
         exampleSqueakBadSig.setScriptSig(badScriptSig);
 
         // Set up squeak with bad data key
-        byte[] randomDataKey = Encryption.generateDataKey();
-        exampleSqueakBadDataKey = squeakSerializer.makeSqueak(exampleSqueakBytes);
-        exampleSqueakBadDataKey.setDataKey(randomDataKey);
+        Encryption.EncryptionDecryptionKeyPair encryptionDecryptionKeyPair = Encryption.EncryptionDecryptionKeyPair.generateKeyPair();
+        Encryption.DecryptionKey randomDecryptionKey = encryptionDecryptionKeyPair.getDecryptionKey();
+        exampleSqueakBadDataKey = makeExampleSqueak();
+        exampleSqueakBadDataKey.setDecryptionKey(randomDecryptionKey.getBytes());
 
         // Set up squeak with missing data key
-        exampleSqueakMissingDataKey = squeakSerializer.makeSqueak(exampleSqueakBytes);
-        exampleSqueakMissingDataKey.clearDataKey();
+        exampleSqueakMissingDataKey = makeExampleSqueak();
+        exampleSqueakMissingDataKey.clearDecryptionKey();
 
         // Set up squeak with bad enc content
         byte[] randomContent = TestUtils.generateRandomContent();
-        exampleSqueakBadEncContent = squeakSerializer.makeSqueak(exampleSqueakBytes);
+        exampleSqueakBadEncContent = makeExampleSqueak();
         exampleSqueakBadEncContent.setEncContent(randomContent);
 
+    }
+
+    public Squeak makeExampleSqueak() throws Exception {
+        Signing.KeyPair keyPair = new Signing.BitcoinjKeyPair();
+        String message = "hello!";
+        int blockHeight = 0;
+        Sha256Hash blockHash = Sha256Hash.wrap(HEX.decode("000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"));
+        long timestamp = System.currentTimeMillis();
+        Sha256Hash replyTo = Sha256Hash.ZERO_HASH;
+        return Squeak.makeSqueakFromStr(
+                MAINNET,
+                keyPair,
+                message,
+                blockHeight,
+                blockHash,
+                timestamp,
+                replyTo
+        );
     }
 
     @Test
@@ -83,10 +102,10 @@ public class SqueakTest {
         assertEquals(exampleSqueak.getScriptPubKey().getChunks().get(4).opcode, ScriptOpCodes.OP_CHECKSIG);
     }
 
-    @Test
+/*    @Test
     public void testHashDataKey() throws Exception {
         assertEquals("a892b040034ca5e70da84d7e5997653004df21de39e9db946692ebe7819a8f60", exampleSqueak.getHashDataKey().toString());
-    }
+    }*/
 
     @Test
     public void testIV() throws Exception {
@@ -164,7 +183,7 @@ public class SqueakTest {
         String decryptedMessage = exampleSqueak.getDecryptedContentStr();
 
         assertEquals(decryptedContent.length, 1120);
-        assertEquals(decryptedMessage, "Hello world!");
+        assertEquals(decryptedMessage, "hello!");
     }
 
 
@@ -209,7 +228,7 @@ public class SqueakTest {
 
         reparsed.verify();
         assertEquals(reparsed, exampleSqueak);
-        assert (reparsed.hasDataKey());
+        assert (reparsed.hasDecryptionKey());
     }
 
     @Test
@@ -221,13 +240,14 @@ public class SqueakTest {
                 exampleSqueak.getHashBlock(),
                 exampleSqueak.getBlockHeight(),
                 exampleSqueak.getScriptPubKeyBytes(),
-                exampleSqueak.getHashDataKey(),
+                exampleSqueak.getEncryptionKey().getBytes(),
+                exampleSqueak.getEncDataKeyBytes(),
                 exampleSqueak.getVchIv(),
                 exampleSqueak.getTime(),
                 exampleSqueak.getNonce(),
                 exampleSqueak.getEncContent(),
                 exampleSqueak.getScriptSigBytes(),
-                exampleSqueak.getDataKey()
+                exampleSqueak.getDecryptionKey().getBytes()
         );
         squeak.verify();
 
@@ -246,8 +266,8 @@ public class SqueakTest {
 
         reparsed.verify(true);
         assertEquals(reparsed, exampleSqueakMissingDataKey);
-        assert (!reparsed.hasDataKey());
-        assertNull(reparsed.getDataKey());
+        assert (!reparsed.hasDecryptionKey());
+        assertNull(reparsed.getDecryptionKey());
     }
 
     @Test
@@ -259,13 +279,14 @@ public class SqueakTest {
                 exampleSqueak.getHashBlock(),
                 exampleSqueak.getBlockHeight(),
                 exampleSqueak.getScriptPubKeyBytes(),
-                exampleSqueak.getHashDataKey(),
+                exampleSqueak.getEncryptionKey().getBytes(),
+                exampleSqueak.getEncDataKeyBytes(),
                 exampleSqueak.getVchIv(),
                 exampleSqueak.getTime(),
                 exampleSqueak.getNonce(),
                 exampleSqueak.getEncContent(),
                 exampleSqueak.getScriptSigBytes(),
-                exampleSqueak.getDataKey()
+                exampleSqueak.getDecryptionKey().getBytes()
         );
 
         exampleSqueak.verify();
@@ -281,12 +302,12 @@ public class SqueakTest {
         assertEquals(32, exampleSqueak.getHashReplySqk().getBytes().length);
         assertEquals(32, exampleSqueak.getHashBlock().getBytes().length);
         assert (50 > exampleSqueak.getScriptPubKey().getProgram().length);
-        assertEquals(32, exampleSqueak.getHashDataKey().getBytes().length);
+        // assertEquals(32, exampleSqueak.getHashDataKey().getBytes().length);
         assertEquals(16, exampleSqueak.getVchIv().length);
         assertEquals(1136, exampleSqueak.getEncContent().length);
         assert (200 > exampleSqueak.getScriptSig().getProgram().length);
         assert (50 > exampleSqueak.getAddress().toString().length());
-        assertEquals(32, exampleSqueak.getDataKey().length);
+        // assertEquals(32, exampleSqueak.getDataKey().length);
         assertEquals(1120, exampleSqueak.getDecryptedContent().length);
     }
 

@@ -28,7 +28,7 @@ public class EncryptionTest {
     }
 
     @Test
-    public void testSerializeDecryptionKey() {
+    public void testSerializeDecryptionKey() throws EncryptionException {
         Encryption.EncryptionDecryptionKeyPair keyPair = Encryption.EncryptionDecryptionKeyPair.generateKeyPair();
         Encryption.DecryptionKey decryptionKey = keyPair.getDecryptionKey();
         byte[] serialized = decryptionKey.getBytes();
@@ -38,7 +38,7 @@ public class EncryptionTest {
     }
 
     @Test
-    public void testSerializeEncryptionKey() {
+    public void testSerializeEncryptionKey() throws EncryptionException {
         Encryption.EncryptionDecryptionKeyPair keyPair = Encryption.EncryptionDecryptionKeyPair.generateKeyPair();
         Encryption.EncryptionKey encryptionKey = keyPair.getEncryptionKey();
         byte[] serialized = encryptionKey.getBytes();
@@ -48,7 +48,7 @@ public class EncryptionTest {
     }
 
     @Test
-    public void testEncryptAssymetric() {
+    public void testEncryptAssymetric() throws EncryptionException {
         Encryption.EncryptionDecryptionKeyPair keyPair = Encryption.EncryptionDecryptionKeyPair.generateKeyPair();
         Encryption.EncryptionKey encryptionKey = keyPair.getEncryptionKey();
         Encryption.DecryptionKey decryptionKey = keyPair.getDecryptionKey();

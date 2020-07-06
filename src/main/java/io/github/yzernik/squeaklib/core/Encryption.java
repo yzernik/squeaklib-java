@@ -94,7 +94,11 @@ public class Encryption {
             return decryptionKey;
         }
 
-        public static EncryptionDecryptionKeyPair generateKeyPair() {
+        public byte[] getEncDataKey() {
+            return null;
+        }
+
+        public static EncryptionDecryptionKeyPair generateKeyPair() throws EncryptionException {
             try {
                 KeyPairGenerator keyFactory = KeyPairGenerator.getInstance(RSA_ALGORITHM);
                 keyFactory.initialize(RSA_KEY_LENGTH);
@@ -104,7 +108,7 @@ public class Encryption {
                 return new EncryptionDecryptionKeyPair(encryptionKey, decryptionKey);
             } catch (NoSuchAlgorithmException e) {
                 e.printStackTrace();
-                return null;
+                throw new EncryptionException(e);
             }
         }
 
@@ -118,7 +122,7 @@ public class Encryption {
             this.privateKey = privateKey;
         }
 
-        public static DecryptionKey fromBytes(byte[] bytes) {
+        public static DecryptionKey fromBytes(byte[] bytes) throws EncryptionException {
             return new DecryptionKey(DecryptionKey.deserializePrivateKey(bytes));
         }
 
@@ -130,25 +134,25 @@ public class Encryption {
             return privateKey;
         }
 
-        public byte[] decrypt(byte[] ciphertext) {
+        public byte[] decrypt(byte[] ciphertext) throws EncryptionException {
             try {
                 Cipher cipher = Cipher.getInstance(CIPHER_TYPE);
                 cipher.init(Cipher.DECRYPT_MODE, privateKey);
                 return cipher.doFinal(ciphertext);
             } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
                 e.printStackTrace();
-                return null;
+                throw new EncryptionException(e);
             }
         }
 
-        private static PrivateKey deserializePrivateKey(byte[] bytes) {
+        private static PrivateKey deserializePrivateKey(byte[] bytes) throws EncryptionException {
             try {
                 KeyFactory keyFactory = KeyFactory.getInstance(RSA_ALGORITHM);
                 PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(bytes);
                 return keyFactory.generatePrivate(spec);
             } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
                 e.printStackTrace();
-                return null;
+                throw new EncryptionException(e);
             }
         }
 
@@ -169,7 +173,7 @@ public class Encryption {
             this.publicKey = publicKey;
         }
 
-        public static EncryptionKey fromBytes(byte[] bytes) {
+        public static EncryptionKey fromBytes(byte[] bytes) throws EncryptionException {
             return new EncryptionKey(EncryptionKey.deserializePublicKey(bytes));
         }
 
@@ -181,25 +185,25 @@ public class Encryption {
             return publicKey;
         }
 
-        public byte[] encrypt(byte[] message) {
+        public byte[] encrypt(byte[] message) throws EncryptionException {
             try {
                 Cipher cipher = Cipher.getInstance(CIPHER_TYPE);
                 cipher.init(Cipher.ENCRYPT_MODE, publicKey);
                 return cipher.doFinal(message);
             } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
                 e.printStackTrace();
-                return null;
+                throw new EncryptionException(e);
             }
         }
 
-        private static PublicKey deserializePublicKey(byte[] bytes) {
+        private static PublicKey deserializePublicKey(byte[] bytes) throws EncryptionException {
             try {
                 X509EncodedKeySpec spec = new X509EncodedKeySpec(bytes);
                 KeyFactory keyFactory = KeyFactory.getInstance(RSA_ALGORITHM);
                 return keyFactory.generatePublic(spec);
             } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
                 e.printStackTrace();
-                return null;
+                throw new EncryptionException(e);
             }
         }
 

@@ -1,7 +1,7 @@
 package io.github.yzernik.squeaklib.core;
 
 
-public class SqueakException extends RuntimeException {
+public class SqueakException extends Exception {
     public SqueakException(String msg) {
         super(msg);
     }
