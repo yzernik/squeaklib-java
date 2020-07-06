@@ -20,7 +20,7 @@ public class SqueakTest {
     private static final String message = "hello!";
     private static final int blockHeight = 0;
     private static final Sha256Hash blockHash = Sha256Hash.wrap(HEX.decode("000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"));
-    private static final long timestamp = System.currentTimeMillis();
+    private static final long timestamp = System.currentTimeMillis() / 1000;
     private static final Sha256Hash replyTo = Sha256Hash.ZERO_HASH;
 
     private Squeak exampleSqueak;

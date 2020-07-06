@@ -169,8 +169,12 @@ public class Squeak extends Message {
 
         encDataKeyBytes = readBytes(ENCRYPTED_DATA_KEY_LENGTH);
 
+        System.err.println("parsed encDataKeyBytes: " + HEX.encode(encDataKeyBytes));
+
         // Get the vch_iv
         vchIv = readBytes(IV_SIZE);
+
+        System.err.println("parsed vchIv: " + HEX.encode(vchIv));
 
         nTime = readUint32();
 
@@ -304,7 +308,13 @@ public class Squeak extends Message {
         stream.write(new VarInt(encryptionKeyBytes.length).encode());
         stream.write(encryptionKeyBytes);
         stream.write(encDataKeyBytes);
+
+        System.err.println("wrote encDataKeyBytes: " + HEX.encode(encDataKeyBytes));
+
         stream.write(vchIv);
+
+        System.err.println("wrote vchIv: " + HEX.encode(vchIv));
+
         Utils.uint32ToByteStreamLE(nTime, stream);
 
         System.err.println("wrote nTime: " + nTime);
