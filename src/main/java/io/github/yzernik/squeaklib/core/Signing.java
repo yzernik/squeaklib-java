@@ -51,7 +51,7 @@ public class Signing {
     }
 
     public interface PrivateKey {
-        public Signature sign(byte[] data);
+        public Signature sign(byte[] data) throws SigningException;
     }
 
     public interface Signature {
@@ -120,7 +120,7 @@ public class Signing {
         }
 
         @Override
-        public Signature sign(byte[] data) {
+        public Signature sign(byte[] data) throws SigningException {
             if (data.length != HASH_LENGTH) {
                 throw new SigningException("");
             }

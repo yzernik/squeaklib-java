@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.EnumSet;
 
 import static org.bitcoinj.core.Utils.HEX;
@@ -29,11 +30,12 @@ public class Squeak extends Message {
     private static final Logger log = LoggerFactory.getLogger(Squeak.class);
 
     /** How many bytes are required to represent a squeak header WITHOUT the trailing 00 length byte. */
-    public static final int HEADER_SIZE = 186;
+    // public static final int HEADER_SIZE = 186;
     public static final int IV_SIZE = 16;
     public static final int DATA_KEY_SIZE = 32;
     public static final int ENC_CONTENT_SIZE = 1136;
     public static final int CONTENT_SIZE = 1120;
+    public static final int ENCRYPTED_DATA_KEY_LENGTH = 128;
 
     public static final long SQUEAK_VERSION_ALPHA = 1;
 
@@ -50,7 +52,10 @@ public class Squeak extends Message {
     // The script bytes are parsed and turned into a Script on demand.
     private Script scriptPubKey;
 
-    private Sha256Hash hashDataKey;
+    private byte[] encryptionKeyBytes;
+    private Encryption.EncryptionKey encryptionKey;
+
+    private byte[] encDataKeyBytes;
     private byte[] vchIv;
 
     private long nTime;
@@ -70,7 +75,7 @@ public class Squeak extends Message {
     private WeakReference<SqueakScript> scriptSig;
 
     @Nullable
-    byte[] vchDataKey;
+    byte[] decryptionKeyBytes;
 
     /** Stores the hash of the squeak. If null, getHash() will recalculate it. */
     private Sha256Hash hash;
@@ -98,7 +103,7 @@ public class Squeak extends Message {
         super(params, payloadBytes, offset, serializer, length);
     }
 
-    public Squeak(NetworkParameters params, Sha256Hash hashEncContent, Sha256Hash hashReplySqk, Sha256Hash hashBlock, long nBlockHeight, byte[] scriptPubKeyBytes, Sha256Hash hashDataKey, byte[] vchIv, long nTime, long nNonce, byte[] encContent, byte[] scriptsigBytes, byte[] vchDataKey)
+    public Squeak(NetworkParameters params, Sha256Hash hashEncContent, Sha256Hash hashReplySqk, Sha256Hash hashBlock, long nBlockHeight, byte[] scriptPubKeyBytes, byte[] encryptionKeyBytes, byte[] encDataKeyBytes, byte[] vchIv, long nTime, long nNonce, byte[] encContent, byte[] scriptsigBytes, byte[] decryptionKeyBytes)
             throws ProtocolException {
         super(params);
         // Set up a few basic things. We are not complete after this though.
@@ -109,7 +114,8 @@ public class Squeak extends Message {
         this.hashBlock = hashBlock;
         this.nBlockHeight = nBlockHeight;
         this.scriptPubKeyBytes = scriptPubKeyBytes;
-        this.hashDataKey = hashDataKey;
+        this.encryptionKeyBytes = encryptionKeyBytes;
+        this.encDataKeyBytes = encDataKeyBytes;
         this.vchIv = vchIv;
         this.nTime = nTime;
         this.nNonce = nNonce;
@@ -118,12 +124,12 @@ public class Squeak extends Message {
         // content
         this.encContent = encContent;
         this.scriptSigBytes = scriptsigBytes;
-        this.vchDataKey = vchDataKey;
+        this.decryptionKeyBytes = decryptionKeyBytes;
 
         // TODO: figure out contentBytesValid
         contentBytesValid = serializer.isParseRetainMode();
 
-        length = HEADER_SIZE;
+        // length = HEADER_SIZE;
     }
 
     /** Special case constructor, used for the genesis node, cloneAsHeader and unit tests. */
@@ -132,39 +138,43 @@ public class Squeak extends Message {
         super(params);
         // Set up a few basic things. We are not complete after this though.
         version = setVersion;
-        length = HEADER_SIZE;
+        // length = HEADER_SIZE;
     }
 
 
     @Override
     protected void parse() throws ProtocolException {
         // header
+        parseHeader();
+
+        // content
+        parseContent(cursor);
+
+        length = cursor - offset;
+    }
+
+    protected void parseHeader() throws ProtocolException {
         cursor = offset;
         version = readUint32();
         hashEncContent = readHash();
         hashReplySqk = readHash();
         hashBlock = readHash();
         nBlockHeight = readUint32();
-
         // parse the script pubkey
         int scriptLen = (int) readVarInt();
         length = cursor - offset + scriptLen;
         scriptPubKeyBytes = readBytes(scriptLen);
-
-        hashDataKey = readHash();
-
+        int encryptionKeyLen = (int) readVarInt();
+        length = cursor - offset + encryptionKeyLen;
+        encryptionKeyBytes = readBytes(encryptionKeyLen);
+        encDataKeyBytes = readBytes(ENCRYPTED_DATA_KEY_LENGTH);
         // Get the vch_iv
         vchIv = readBytes(IV_SIZE);
-
         nTime = readUint32();
         nNonce = readUint32();
         // Get the hash
         hash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(payload, offset, cursor - offset));
         headerBytesValid = serializer.isParseRetainMode();
-
-        // content
-        parseContent(offset + HEADER_SIZE);
-        length = cursor - offset;
     }
 
 
@@ -175,7 +185,7 @@ public class Squeak extends Message {
      */
     protected void parseContent(final int contentOffset) throws ProtocolException {
         cursor = contentOffset;
-        optimalEncodingMessageSize = HEADER_SIZE;
+        // optimalEncodingMessageSize = HEADER_SIZE;
         if (payload.length == cursor) {
             // This message is just a header, it has no content.
             contentBytesValid = false;
@@ -192,8 +202,10 @@ public class Squeak extends Message {
         // TODO: Maybe uncomment.
         // scriptSig = new Script(scriptSigBytes);
 
-        // Get the data key.
-        vchDataKey = readBytes(DATA_KEY_SIZE);
+        // Get the decryption key.
+        int decryptionKeyLen = (int) readVarInt();
+        length = cursor - offset + decryptionKeyLen + 4;
+        decryptionKeyBytes = readBytes(decryptionKeyLen);
 
         contentBytesValid = serializer.isParseRetainMode();
     }
@@ -231,13 +243,14 @@ public class Squeak extends Message {
         squeak.nBlockHeight = nBlockHeight;
         squeak.scriptPubKeyBytes = scriptPubKeyBytes;
         squeak.scriptSigBytes = scriptSigBytes;
-        squeak.hashDataKey = hashDataKey;
+        squeak.encryptionKeyBytes = encryptionKeyBytes;
+        squeak.encDataKeyBytes = encDataKeyBytes;
         squeak.vchIv = vchIv;
         squeak.version = version;
         squeak.nTime = nTime;
         squeak.encContent = null;
         squeak.scriptSig = null;
-        squeak.vchDataKey = null;
+        squeak.decryptionKeyBytes = null;
     }
 
     /**
@@ -246,7 +259,8 @@ public class Squeak extends Message {
      */
     private Sha256Hash calculateHash() {
         try {
-            ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream(HEADER_SIZE);
+            // ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream(HEADER_SIZE);
+            ByteArrayOutputStream bos = new UnsafeByteArrayOutputStream();
             writeHeader(bos);
             return Sha256Hash.wrapReversed(Sha256Hash.hashTwice(bos.toByteArray()));
         } catch (IOException e) {
@@ -257,10 +271,11 @@ public class Squeak extends Message {
     // default for testing
     void writeHeader(OutputStream stream) throws IOException {
         // try for cached write first
+        /*
         if (headerBytesValid && payload != null && payload.length >= offset + HEADER_SIZE) {
             stream.write(payload, offset, HEADER_SIZE);
             return;
-        }
+        }*/
         // fall back to manual write
         Utils.uint32ToByteStreamLE(version, stream);
         stream.write(hashEncContent.getReversedBytes());
@@ -269,7 +284,9 @@ public class Squeak extends Message {
         Utils.uint32ToByteStreamLE(nBlockHeight, stream);
         stream.write(new VarInt(scriptPubKeyBytes.length).encode());
         stream.write(scriptPubKeyBytes);
-        stream.write(hashDataKey.getReversedBytes());
+        stream.write(new VarInt(encryptionKeyBytes.length).encode());
+        stream.write(encryptionKeyBytes);
+        stream.write(encDataKeyBytes);
         stream.write(vchIv);
         Utils.uint32ToByteStreamLE(nTime, stream);
         Utils.uint32ToByteStreamLE(nNonce, stream);
@@ -285,7 +302,8 @@ public class Squeak extends Message {
         Utils.uint32ToByteStreamLE(nBlockHeight, stream);
         stream.write(new VarInt(scriptPubKeyBytes.length).encode());
         stream.write(scriptPubKeyBytes);
-        stream.write(hashDataKey.getReversedBytes());
+        stream.write(encryptionKeyBytes);
+        stream.write(encDataKeyBytes);
         stream.write(vchIv);
         Utils.uint32ToByteStreamLE(nTime, stream);
         Utils.uint32ToByteStreamLE(nNonce, stream);
@@ -296,9 +314,14 @@ public class Squeak extends Message {
             return;
         }
         stream.write(encContent);
+
+        // Write the script sig.
         stream.write(new VarInt(scriptSigBytes.length).encode());
         stream.write(scriptSigBytes);
-        stream.write(vchDataKey);
+
+        // Write the decryption key.
+        stream.write(new VarInt(decryptionKeyBytes.length).encode());
+        stream.write(decryptionKeyBytes);
     }
 
     @Override
@@ -347,10 +370,6 @@ public class Squeak extends Message {
     public Address getAddress() throws ScriptException {
         Script pubkey = getScriptPubKey();
         return pubkey.getToAddress(params);
-    }
-
-    public Sha256Hash getHashDataKey() throws ScriptException {
-        return hashDataKey;
     }
 
     public byte[] getVchIv() throws ScriptException {
@@ -403,36 +422,51 @@ public class Squeak extends Message {
     }
 
     /**
-     * Set the data key.
+     * Set the decryption key.
      */
-    public void setDataKey(byte[] dataKey) throws ScriptException {
-        assert (dataKey.length == 32);
-        this.vchDataKey = dataKey;
+    public void setDecryptionKey(byte[] decryptionKeyBytes) {
+        this.decryptionKeyBytes = decryptionKeyBytes;
         this.payload = null;
     }
 
     /**
-     * Clear the data key.
+     * Clear the decryption key.
      */
-    public void clearDataKey() throws ScriptException {
-        byte[] emptyBytes = new byte[32];
-        setDataKey(emptyBytes);
+    public void clearDecryptionKey()  {
+        byte[] emptyBytes = new byte[0];
+        setDecryptionKey(emptyBytes);
     }
 
-    public boolean hasDataKey() {
-        byte[] emptyBytes = new byte[32];
-        return !Arrays.equals(vchDataKey, emptyBytes);
+    public boolean hasDecryptionKey() {
+        return decryptionKeyBytes.length > 0;
     }
 
-    public byte[] getDataKey() {
-        if (!hasDataKey()) {
+    public Encryption.DecryptionKey getDecryptionKey() {
+        if (!hasDecryptionKey()) {
             return null;
         }
-        return vchDataKey;
+        try {
+            return Encryption.DecryptionKey.fromBytes(decryptionKeyBytes);
+        } catch (EncryptionException e) {
+            return null;
+        }
     }
+
+    public Encryption.EncryptionKey getEncryptionKey() {
+        try {
+            return Encryption.EncryptionKey.fromBytes(encryptionKeyBytes);
+        } catch (EncryptionException e) {
+            return null;
+        }
+    }
+
 
     public byte[] getEncContent() {
         return encContent;
+    }
+
+    public byte[] getEncDataKeyBytes() {
+        return encDataKeyBytes;
     }
 
     /**
@@ -454,7 +488,7 @@ public class Squeak extends Message {
         verifyHeader();
         verifyContent();
         if (!skipDecryptionCheck)
-            verifyDataKey();
+            verifyDecryptionKey();
     }
 
     /**
@@ -467,7 +501,7 @@ public class Squeak extends Message {
         checkPubKey();
     }
 
-    private void checkPubKey() {
+    private void checkPubKey() throws VerificationException {
         try {
             getAddress();
         } catch (ScriptException e) {
@@ -507,27 +541,42 @@ public class Squeak extends Message {
      *
      * @throws VerificationException if there was an error verifying the data key.
      */
-    public void verifyDataKey() throws VerificationException {
-        byte[] dataKey = getDataKey();
-        Sha256Hash dataKeyHash = getHashDataKey();
-        Sha256Hash hashedDataKey;
+    public void verifyDecryptionKey() throws VerificationException {
+        Encryption.DecryptionKey decryptionKey = getDecryptionKey();
+        Encryption.EncryptionKey encryptionKey = getEncryptionKey();
 
-        try {
-            hashedDataKey = hashDataKey(dataKey);
-        } catch (Exception e) {
-            throw new VerificationException("verifyContent() : invalid data key for the given squeak");
+        if (decryptionKey == null) {
+            throw new VerificationException("verifyContent() : invalid decryption key for the given squeak");
         }
 
-        if (!dataKeyHash.equals(hashedDataKey))
-            throw new VerificationException("verifyContent() : invalid data key for the given squeak");
+        byte[] expected_proof = Encryption.generateDataKey();
+        byte[] challenge;
+        byte[] proof;
+
+        try {
+            challenge = encryptionKey.encrypt(expected_proof);
+            proof = decryptionKey.decrypt(challenge);
+        } catch (EncryptionException e) {
+            throw new VerificationException("verifyContent() : invalid decryption key for the given squeak");
+        }
+
+        if (!Arrays.equals(proof, expected_proof)) {
+            throw new VerificationException("verifyContent() : invalid decryption key for the given squeak");
+        }
     }
 
     private static Sha256Hash hashDataKey(byte[] dataKey) throws Exception{
         return Sha256Hash.wrapReversed(Sha256Hash.hash(dataKey));
     }
 
+    private static Sha256Hash hashEncContent(byte[] encContent) throws Exception{
+        return Sha256Hash.wrapReversed(Sha256Hash.hash(encContent));
+    }
+
     public byte[] getDecryptedContent() throws Exception {
-        byte[] dataKey = getDataKey();
+        Encryption.DecryptionKey decryptionKey = getDecryptionKey();
+        byte[] dataKeyCipher = encDataKeyBytes;
+        byte[] dataKey = decryptionKey.decrypt(dataKeyCipher);
         byte[] iv = getVchIv();
         byte[] cipherText = getEncContent();
         return Encryption.decryptContent(dataKey, iv, cipherText);
@@ -535,6 +584,10 @@ public class Squeak extends Message {
 
     public String getDecryptedContentStr() throws Exception {
         return Encoding.decodeMessage(getDecryptedContent());
+    }
+
+    public static byte[] encryptDataKey(Encryption.EncryptionKey encryptionKey, byte[] dataKey) throws EncryptionException {
+        return encryptionKey.encrypt(dataKey);
     }
 
     /**
@@ -552,6 +605,12 @@ public class Squeak extends Message {
         byte[] dataKey = Encryption.generateDataKey();
         byte[] iv = Encryption.generateIV();
         byte[] encContent = Encryption.encryptContent(dataKey, iv, content);
+        Sha256Hash hashEncContent = hashEncContent(encContent);
+        Encryption.EncryptionDecryptionKeyPair encryptionDecryptionKeyPair = Encryption.EncryptionDecryptionKeyPair.generateKeyPair();
+        Encryption.DecryptionKey decryptionKey = encryptionDecryptionKeyPair.getDecryptionKey();
+        Encryption.EncryptionKey encryptionKey = encryptionDecryptionKeyPair.getEncryptionKey();
+        byte[] dataKeyCipher = encryptDataKey(encryptionKey, dataKey);
+
         Sha256Hash dataKeyHash = hashDataKey(dataKey);
         long nonce = Encryption.generateNonce();
         byte[] pubKeyBytes = keyPair.getPublicKey().getPubKeyBytes();
@@ -564,13 +623,14 @@ public class Squeak extends Message {
                 blockHash,
                 blockHeight,
                 pubKeyScript.getProgram(),
-                dataKeyHash,
+                encryptionKey.getBytes(),
+                dataKeyCipher,
                 iv,
                 timestamp,
                 nonce,
                 encContent,
                 null,
-                dataKey
+                decryptionKey.getBytes()
         );
         Script sigScript = squeak.signSqueak(keyPair.getPrivateKey(), pubKeyBytes);
         squeak.setScriptSig(sigScript);
@@ -594,7 +654,7 @@ public class Squeak extends Message {
      * @param pubKeyBytes
      * @return
      */
-    public Script signSqueak(Signing.PrivateKey privateKey, byte[] pubKeyBytes) {
+    public Script signSqueak(Signing.PrivateKey privateKey, byte[] pubKeyBytes) throws SigningException {
         // The hash needs to be reversed because it is stored as
         // a big-endian.
         Sha256Hash squeakHash = Sha256Hash.wrap(getHash().getReversedBytes());
@@ -618,7 +678,8 @@ public class Squeak extends Message {
         s.append("   hash block: ").append(getHashBlock()).append("\n");
         s.append("   block height: ").append(nBlockHeight).append("\n");
         s.append("   script pub key: ").append(getScriptPubKey()).append("\n");
-        s.append("   hash data key: ").append(getHashDataKey()).append("\n");
+        s.append("   encryption key: ").append(getEncryptionKey()).append("\n");
+        s.append("   enc data key: ").append(getEncDataKeyBytes()).append("\n");
         s.append("   vchIv: ").append(HEX.encode(getVchIv())).append("\n");
         s.append("   time: ").append(nTime).append("\n");
         s.append("   nonce: ").append(getNonce()).append("\n");
