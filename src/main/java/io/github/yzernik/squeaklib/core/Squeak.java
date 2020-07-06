@@ -145,51 +145,36 @@ public class Squeak extends Message {
     @Override
     protected void parse() throws ProtocolException {
         // header
+        parseHeader();
+
+        // content
+        parseContent(cursor);
+
+        length = cursor - offset;
+    }
+
+    protected void parseHeader() throws ProtocolException {
         cursor = offset;
         version = readUint32();
-
-        System.err.println("parsed version: " + version);
-
         hashEncContent = readHash();
         hashReplySqk = readHash();
         hashBlock = readHash();
-
-        System.err.println("parsed hashBlock: " + hashBlock);
-
         nBlockHeight = readUint32();
-
         // parse the script pubkey
         int scriptLen = (int) readVarInt();
         length = cursor - offset + scriptLen;
         scriptPubKeyBytes = readBytes(scriptLen);
-
         int encryptionKeyLen = (int) readVarInt();
         length = cursor - offset + encryptionKeyLen;
         encryptionKeyBytes = readBytes(encryptionKeyLen);
-
         encDataKeyBytes = readBytes(ENCRYPTED_DATA_KEY_LENGTH);
-
-        System.err.println("parsed encDataKeyBytes: " + HEX.encode(encDataKeyBytes));
-
         // Get the vch_iv
         vchIv = readBytes(IV_SIZE);
-
-        System.err.println("parsed vchIv: " + HEX.encode(vchIv));
-
         nTime = readUint32();
-
-        System.err.println("parsed nTime: " + nTime);
-        System.err.println("parsed nTime: " + new Date(nTime * 1000));
-
         nNonce = readUint32();
         // Get the hash
         hash = Sha256Hash.wrapReversed(Sha256Hash.hashTwice(payload, offset, cursor - offset));
         headerBytesValid = serializer.isParseRetainMode();
-
-        // content
-        // parseContent(offset + HEADER_SIZE);
-        parseContent(cursor);
-        length = cursor - offset;
     }
 
 
@@ -293,32 +278,17 @@ public class Squeak extends Message {
         }*/
         // fall back to manual write
         Utils.uint32ToByteStreamLE(version, stream);
-
-        System.err.println("wrote version: " + version);
-
         stream.write(hashEncContent.getReversedBytes());
         stream.write(hashReplySqk.getReversedBytes());
         stream.write(hashBlock.getReversedBytes());
-
-        System.err.println("wrote hashBlock: " + hashBlock);
-
         Utils.uint32ToByteStreamLE(nBlockHeight, stream);
         stream.write(new VarInt(scriptPubKeyBytes.length).encode());
         stream.write(scriptPubKeyBytes);
         stream.write(new VarInt(encryptionKeyBytes.length).encode());
         stream.write(encryptionKeyBytes);
         stream.write(encDataKeyBytes);
-
-        System.err.println("wrote encDataKeyBytes: " + HEX.encode(encDataKeyBytes));
-
         stream.write(vchIv);
-
-        System.err.println("wrote vchIv: " + HEX.encode(vchIv));
-
         Utils.uint32ToByteStreamLE(nTime, stream);
-
-        System.err.println("wrote nTime: " + nTime);
-
         Utils.uint32ToByteStreamLE(nNonce, stream);
     }
 
@@ -606,7 +576,6 @@ public class Squeak extends Message {
     public byte[] getDecryptedContent() throws Exception {
         Encryption.DecryptionKey decryptionKey = getDecryptionKey();
         byte[] dataKeyCipher = encDataKeyBytes;
-        System.err.println("dataKeyCipher length: " + dataKeyCipher.length);
         byte[] dataKey = decryptionKey.decrypt(dataKeyCipher);
         byte[] iv = getVchIv();
         byte[] cipherText = getEncContent();
