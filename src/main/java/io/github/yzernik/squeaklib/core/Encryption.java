@@ -5,10 +5,14 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
@@ -22,9 +26,11 @@ public class Encryption {
 
     /** Algorithm used by RSA keys and ciphers. */
     public static final String RSA_ALGORITHM = "RSA";
-    public static final String CIPHER_TYPE = "RSA/ECB/PKCS1Padding";
+    public static final String CIPHER_TYPE = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding";
     public static final int RSA_KEY_LENGTH = 1024;
 
+    private static final OAEPParameterSpec oaepParams = new OAEPParameterSpec("SHA-256",
+            "MGF1", MGF1ParameterSpec.SHA256, PSource.PSpecified.DEFAULT);
 
     public static Cipher createDataCipher() throws NoSuchPaddingException, NoSuchAlgorithmException {
         return Cipher.getInstance("AES/CBC/PKCS5PADDING");
@@ -135,9 +141,9 @@ public class Encryption {
         public byte[] decrypt(byte[] ciphertext) throws EncryptionException {
             try {
                 Cipher cipher = Cipher.getInstance(CIPHER_TYPE);
-                cipher.init(Cipher.DECRYPT_MODE, privateKey);
+                cipher.init(Cipher.DECRYPT_MODE, privateKey, oaepParams);
                 return cipher.doFinal(ciphertext);
-            } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
+            } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException | InvalidAlgorithmParameterException e) {
                 e.printStackTrace();
                 throw new EncryptionException(e);
             }
@@ -186,9 +192,9 @@ public class Encryption {
         public byte[] encrypt(byte[] message) throws EncryptionException {
             try {
                 Cipher cipher = Cipher.getInstance(CIPHER_TYPE);
-                cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+                cipher.init(Cipher.ENCRYPT_MODE, publicKey, oaepParams);
                 return cipher.doFinal(message);
-            } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
+            } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException | InvalidAlgorithmParameterException e) {
                 e.printStackTrace();
                 throw new EncryptionException(e);
             }

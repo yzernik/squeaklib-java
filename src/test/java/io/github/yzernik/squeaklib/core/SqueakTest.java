@@ -1,5 +1,6 @@
 package io.github.yzernik.squeaklib.core;
 
+import com.google.common.io.ByteStreams;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
@@ -23,6 +24,8 @@ public class SqueakTest {
     private static final long timestamp = System.currentTimeMillis() / 1000;
     private static final Sha256Hash replyTo = Sha256Hash.ZERO_HASH;
 
+    private static byte[] serializedSqueakBytes;
+
     private Squeak exampleSqueak;
     private Squeak exampleSqueakBadSig;
     private Squeak exampleSqueakMissingDataKey;
@@ -35,6 +38,9 @@ public class SqueakTest {
         // One with some of transactions in, so a good test of the merkle tree hashing.
         // exampleSqueakBytes = ByteStreams.toByteArray(SqueakTest.class.getResourceAsStream("squeak_example.dat"));
         NetworkParameters networkParameters = NETWORK;
+
+        serializedSqueakBytes = ByteStreams.toByteArray(SqueakTest.class.getResourceAsStream("squeak_example.dat"));
+
 
         // Set up squeak
         SqueakSerializer squeakSerializer = new SqueakSerializer(networkParameters, true);
@@ -226,6 +232,17 @@ public class SqueakTest {
         reparsed.verify();
         assertEquals(reparsed, exampleSqueak);
         assert (reparsed.hasDecryptionKey());
+    }
+
+    @Test
+    public void testDeserializeFromResource() throws Exception {
+        SqueakSerializer squeakSerializer = new SqueakSerializer(NETWORK, true);
+        Squeak reparsed = squeakSerializer.makeSqueak(serializedSqueakBytes);
+
+        reparsed.verify();
+        assert (reparsed.hasDecryptionKey());
+        assertEquals(reparsed.getHash(), Sha256Hash.wrapReversed(HEX.decode("4dd7fff1c7fe59d5dbd3c9c934559dac54858573cd532aa30b7336ba4efaa178")));
+        assertEquals(reparsed.getDecryptedContentStr(), "Hello world!");
     }
 
     @Test
