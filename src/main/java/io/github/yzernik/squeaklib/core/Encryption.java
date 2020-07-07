@@ -37,7 +37,6 @@ public class Encryption {
     public static byte[] encryptContent(byte[] dataKey, byte[] iv, byte[] content) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException {
         assert (dataKey.length == DATA_KEY_LENGTH);
         assert (iv.length == CIPHER_BLOCK_LENGTH);
-        assert (content.length == CONTENT_LENGTH);
 
         Cipher encryptor = createDataCipher();
         encryptor.init(Cipher.ENCRYPT_MODE, getSecretKey(dataKey), new IvParameterSpec(iv));
@@ -47,7 +46,6 @@ public class Encryption {
     public static byte[] decryptContent(byte[] dataKey, byte[] iv, byte[] cipher) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException {
         assert (dataKey.length == DATA_KEY_LENGTH);
         assert (iv.length == CIPHER_BLOCK_LENGTH);
-        assert (cipher.length == CIPHERTEXT_LENGTH);
 
         Cipher decryptor = createDataCipher();
         decryptor.init(Cipher.DECRYPT_MODE, getSecretKey(dataKey), new IvParameterSpec(iv));
@@ -210,6 +208,36 @@ public class Encryption {
         private static byte[] serializePublicKey(PublicKey publicKey) {
             return publicKey.getEncoded();
         }
+
+    }
+
+    public static class EncryptedDecryptionKey {
+
+        private byte[] cipherBytes;
+
+        public EncryptedDecryptionKey(byte[] cipherBytes) {
+            this.cipherBytes = cipherBytes;
+        }
+
+        public byte[] getCipherBytes() {
+            return cipherBytes;
+        }
+
+        public static EncryptedDecryptionKey fromBytes(byte[] cipherBytes) {
+            return new EncryptedDecryptionKey(cipherBytes);
+        }
+
+        public static EncryptedDecryptionKey fromDecryptionKey(DecryptionKey decryptionKey, byte[] preimage, byte[] iv) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
+            byte[] decryptionKeyBytes = decryptionKey.getBytes();
+            byte[] cipherKeyBytes = encryptContent(preimage, iv, decryptionKeyBytes);
+            return new EncryptedDecryptionKey(cipherKeyBytes);
+        }
+
+        public DecryptionKey getDecryptionKey(byte[] preimage, byte[] iv) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, EncryptionException {
+            byte[] decryptionKeyBytes = decryptContent(preimage, iv, cipherBytes);
+            return DecryptionKey.fromBytes(decryptionKeyBytes);
+        }
+
 
     }
 

@@ -2,7 +2,14 @@ package io.github.yzernik.squeaklib.core;
 
 import org.junit.Test;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 import static org.bitcoinj.core.Utils.HEX;
 import static org.junit.Assert.assertEquals;
@@ -58,6 +65,33 @@ public class EncryptionTest {
 
         byte[] encryptedMessage = encryptionKey.encrypt(messageBytes);
         byte[] decryptedMessageBytes = decryptionKey.decrypt(encryptedMessage);
+        String decyptedMessage = new String(decryptedMessageBytes);
+
+        assertEquals(decyptedMessage, message);
+    }
+
+    @Test
+    public void testEncryptedDecryptionKey() throws EncryptionException, NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
+        byte[] fakePreimage = Encryption.generateDataKey();
+        byte[] iv = Encryption.generateIV();
+        Encryption.EncryptionDecryptionKeyPair keyPair = Encryption.EncryptionDecryptionKeyPair.generateKeyPair();
+        Encryption.EncryptionKey encryptionKey = keyPair.getEncryptionKey();
+        Encryption.DecryptionKey decryptionKey = keyPair.getDecryptionKey();
+
+        String message = "my message";
+        byte[] messageBytes = message.getBytes();
+
+        // encrypt the message
+        byte[] encryptedMessage = encryptionKey.encrypt(messageBytes);
+
+        // encrypt the decryption key
+        Encryption.EncryptedDecryptionKey encryptedDecryptionKey = Encryption.EncryptedDecryptionKey.fromDecryptionKey(decryptionKey, fakePreimage, iv);
+
+        // decrypt the decryption key
+        Encryption.DecryptionKey newDecryptionKey = encryptedDecryptionKey.getDecryptionKey(fakePreimage, iv);
+
+        // decrypt the message
+        byte[] decryptedMessageBytes = newDecryptionKey.decrypt(encryptedMessage);
         String decyptedMessage = new String(decryptedMessageBytes);
 
         assertEquals(decyptedMessage, message);
