@@ -233,15 +233,26 @@ public class Encryption {
             return new EncryptedDecryptionKey(cipherBytes);
         }
 
-        public static EncryptedDecryptionKey fromDecryptionKey(DecryptionKey decryptionKey, byte[] preimage, byte[] iv) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
-            byte[] decryptionKeyBytes = decryptionKey.getBytes();
-            byte[] cipherKeyBytes = encryptContent(preimage, iv, decryptionKeyBytes);
-            return new EncryptedDecryptionKey(cipherKeyBytes);
+        public static EncryptedDecryptionKey fromDecryptionKey(DecryptionKey decryptionKey, byte[] preimage, byte[] iv) throws EncryptionException {
+            try {
+                byte[] decryptionKeyBytes = decryptionKey.getBytes();
+                byte[] cipherKeyBytes = new byte[0];
+                cipherKeyBytes = encryptContent(preimage, iv, decryptionKeyBytes);
+                return new EncryptedDecryptionKey(cipherKeyBytes);
+            } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException | InvalidAlgorithmParameterException e) {
+                e.printStackTrace();
+                throw new EncryptionException(e);
+            }
         }
 
-        public DecryptionKey getDecryptionKey(byte[] preimage, byte[] iv) throws NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException, EncryptionException {
-            byte[] decryptionKeyBytes = decryptContent(preimage, iv, cipherBytes);
-            return DecryptionKey.fromBytes(decryptionKeyBytes);
+        public DecryptionKey getDecryptionKey(byte[] preimage, byte[] iv) throws EncryptionException {
+            try {
+                byte[] decryptionKeyBytes = decryptContent(preimage, iv, cipherBytes);
+                return DecryptionKey.fromBytes(decryptionKeyBytes);
+            } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException | InvalidAlgorithmParameterException e) {
+                e.printStackTrace();
+                throw new EncryptionException(e);
+            }
         }
 
 
